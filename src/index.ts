@@ -3,6 +3,7 @@ import {ApplicationConfig, SkuViewCoreApplication} from './application';
 export * from './application';
 
 export async function main(options: ApplicationConfig = {}) {
+  const dotenv = require('dotenv').config();
   const app = new SkuViewCoreApplication(options);
   await app.boot();
   await app.start();
@@ -18,7 +19,7 @@ if (require.main === module) {
   // Run the application
   const config = {
     rest: {
-      port: +(process.env.PORT ?? 3000),
+      port: +(process.env.PORT ?? 3001),
       host: process.env.HOST,
       // The `gracePeriodForClose` provides a graceful close for http/https
       // servers with keep-alive clients. The default value is `Infinity`
