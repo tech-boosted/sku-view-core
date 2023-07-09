@@ -100,7 +100,6 @@ export class User extends Entity {
   })
   customer_id?: number;
 
-
   constructor(data?: Partial<User>) {
     super(data);
   }

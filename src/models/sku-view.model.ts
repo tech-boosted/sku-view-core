@@ -11,10 +11,10 @@ export class SkuView extends Entity {
   id?: number;
 
   @property({
-    type: 'string',
+    type: 'number',
     required: true,
   })
-  customerId: string;
+  customerId: number;
 
   @property({
     type: 'string',

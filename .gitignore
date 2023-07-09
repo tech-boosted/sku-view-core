@@ -115,3 +115,5 @@ dist
 node_modules
 *xunit.xml
 .nyc_output/
+
+/temp

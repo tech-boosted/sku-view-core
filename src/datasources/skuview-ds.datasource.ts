@@ -4,14 +4,11 @@ import {juggler} from '@loopback/repository';
 const config = {
   name: 'skuviewDS',
   connector: 'mysql',
-  // url: process.env.MYSQL_URI,
-  url: 'mysql://admin:adminacros@acros-test-db-instance-1.cbjmo0koiyrt.us-east-2.rds.amazonaws.com/acrosDB',
+  url: process.env.MYSQL_URI,
   host: 'acros-test-db-instance-1.cbjmo0koiyrt.us-east-2.rds.amazonaws.com',
   port: 3306,
-  user: 'admin',
-  // user: process.env.MYSQL_USER,
-  password: 'adminacros',
-  // password: process.env.MYSQL_PASSWORD,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
   database: 'acrosDB',
 };
 
