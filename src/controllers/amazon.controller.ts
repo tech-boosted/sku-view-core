@@ -25,8 +25,8 @@ const AMAZON_REPORT_CHECK_INTERVAL = Number(
   process.env.AMAZON_REPORT_CHECK_INTERVAL,
 );
 
-const startDate = '2023-07-01';
-const endDate = '2023-07-01';
+const startDate = '2023-05-12';
+const endDate = '2023-05-13';
 
 export class AmazonController {
   constructor(
@@ -68,6 +68,7 @@ export class AmazonController {
       //@ts-ignore
       const userId = userInfo?.user?.id;
       var access_token: string = '';
+      var refresh_token: string = '';
 
       const user: User = await this.userRepository.findById(
         //@ts-ignore
@@ -79,6 +80,8 @@ export class AmazonController {
 
       //@ts-ignore
       access_token = user['amazon_na_access_token'];
+      //@ts-ignore
+      refresh_token = user['amazon_na_refresh_token'];
 
       if (access_token !== '') {
         //@ts-ignore
@@ -86,7 +89,11 @@ export class AmazonController {
         //@ts-ignore
         const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${user?.customer_id}.json`;
 
-        let reportId = await this.create_report(access_token, userInfo);
+        let reportId = await this.create_report(
+          access_token,
+          refresh_token,
+          user,
+        );
         // let reportId = '0fd0443d-f321-4f11-932a-7bafd1c95601';
         this.check_report_status(reportId, access_token, userInfo).then(
           zip_url => {
@@ -140,7 +147,8 @@ export class AmazonController {
 
   create_report = async (
     access_token: string,
-    userInfo: string | JwtPayload,
+    refresh_token: string,
+    user: User,
   ) => {
     let data = JSON.stringify({
       name: 'SP Report Exmaple',
@@ -193,15 +201,51 @@ export class AmazonController {
         console.log(config.url, ' : ', error.response.data);
         console.log('report generate failed');
         if (error.response.status == 401) {
-          // var refreshToken =
-          //   'Atzr|IwEBIPu2goeg7wEbx8n9icc_WPqbIN6MTMl6ZsE5nq0XFZIxVW0H7m4J6GcNCPYiSjN7k1u00pJSddC3st69aWrkdM_FBmEw8xVyB2wpIDIgQASvxq7gQW33v-rQB5H_al7lwJIl5OvnqQ2F1stKIxbRMRtaYjk8klB_dHNX18fZUPxKLT70N4bd-eWx5fed9k7Q5ic7Lz8owWUBQvH7kwlEnKW18cSHqc0LR-xNZbMm8JWTRNZ5fVVHz-cnKdQi60DOa13-uRm4N8nN5_kbBZU_9Wv3PC9okJsOZht2K94UR_Bh6_ewZLQ6oJ9L_pF7t00UecNTE9SYIkdl9qB1oOmTBHXDH4P85QMh15kN_AyXcfUACsvJ9czJ8lVmgtBrYes9t23BkLY5Md3a6ZN256gduKsVOfi0ln1lprSBzaPXrPvhIRwo5XaWlEnoNsxX9qA0AVIcownk_V-Eni3W20hfjp4u';
-          // var new_access_token_result =
-          //   await this.get_access_token_from_refresh_token(refreshToken);
-          //   //@ts-ignore
-          // if (new_access_token_result['status']) {
-          //   //@ts-ignore
-          //   var new_access_token = new_access_token_result['value'];
-          // }
+          console.log('unauthorized to create report');
+
+          var new_access_token_result =
+            await this.get_access_token_from_refresh_token(refresh_token);
+          //@ts-ignore
+          if (new_access_token_result['status']) {
+            //@ts-ignore
+            var new_access_token = new_access_token_result['value'];
+
+            //@ts-ignore
+            var updatedCustomerData: User = {
+              ...user,
+              amazon_na_access_token: new_access_token,
+            };
+            this.userRepository.updateById(
+              user?.customer_id,
+              updatedCustomerData,
+            );
+            access_token = new_access_token;
+
+            config = {
+              ...config,
+              headers: {
+                ...config.headers,
+                Authorization: 'Bearer ' + new_access_token,
+              },
+            };
+
+            await axios
+              .request(config)
+              .then(response => {
+                reportId = response.data.reportId;
+                console.log('got report id');
+                console.log('reportId: ', reportId);
+              })
+              .catch(async error => {
+                console.log(error);
+                throw new HttpErrors.Unauthorized(
+                  'Amazon: Invalid Token after refresh',
+                );
+              });
+          }
+        } else {
+          console.log('Amazon: Failed to create report');
+          throw new HttpErrors.Unauthorized();
         }
       });
     return reportId;
@@ -263,7 +307,7 @@ export class AmazonController {
         }
       })
       .catch(error => {
-        console.log(config.url, ' : ', error.data.message);
+        console.log('reportId -', config.url, ' : ', error.data.message);
         console.log('report status failed');
         result.status = false;
         result.value = null;
