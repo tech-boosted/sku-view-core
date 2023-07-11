@@ -1,5 +1,9 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
+require('dotenv').config();
+
+const user = process.env.MYSQL_USER;
+const password = process.env.MYSQL_PASSWORD;
 
 const config = {
   name: 'skuviewDS',
@@ -7,8 +11,8 @@ const config = {
   url: process.env.MYSQL_URI,
   host: 'acros-test-db-instance-1.cbjmo0koiyrt.us-east-2.rds.amazonaws.com',
   port: 3306,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
+  user: user,
+  password: password,
   database: 'acrosDB',
 };
 

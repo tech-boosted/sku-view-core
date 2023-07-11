@@ -78,10 +78,14 @@ export class AmazonController {
         throw new HttpErrors.NotFound('User not found');
       }
 
-      //@ts-ignore
-      access_token = user['amazon_na_access_token'];
-      //@ts-ignore
-      refresh_token = user['amazon_na_refresh_token'];
+      // //@ts-ignore
+      // access_token = user['amazon_na_access_token'];
+      // //@ts-ignore
+      // refresh_token = user['amazon_na_refresh_token'];
+
+      //ToDo
+      access_token = '';
+      refresh_token = '';
 
       if (access_token !== '') {
         //@ts-ignore
@@ -213,7 +217,8 @@ export class AmazonController {
             //@ts-ignore
             var updatedCustomerData: User = {
               ...user,
-              amazon_na_access_token: new_access_token,
+              //ToDo
+              // amazon_na_access_token: new_access_token,
             };
             this.userRepository.updateById(
               user?.customer_id,
