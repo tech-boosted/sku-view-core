@@ -1,17 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model({
-  settings: {
-    foreignKeys: {
-      channels: {
-        name: 'channels',
-        foreignKey: 'customer_id',
-        entityKey: 'id',
-        entity: 'Channels',
-      },
-    },
-  },
-})
+@model()
 export class User extends Entity {
   @property({
     type: 'number',

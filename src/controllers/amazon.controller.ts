@@ -5,8 +5,12 @@ import {HttpErrors, post, requestBody} from '@loopback/rest';
 import axios from 'axios';
 import jwt, {JwtPayload} from 'jsonwebtoken';
 import qs from 'qs';
-import {SkuView, User} from '../models';
-import {SkuViewRepository, UserRepository} from '../repositories';
+import {Channels, SkuView, User} from '../models';
+import {
+  ChannelsRepository,
+  SkuViewRepository,
+  UserRepository,
+} from '../repositories';
 
 import {createReadStream, createWriteStream} from 'fs';
 import * as stream from 'stream';
@@ -24,6 +28,14 @@ const AMAZON_FILE_DOWNLOAD_PATH = process.env.AMAZON_FILE_DOWNLOAD_PATH;
 const AMAZON_REPORT_CHECK_INTERVAL = Number(
   process.env.AMAZON_REPORT_CHECK_INTERVAL,
 );
+const amazon_base_urls: {[key: string]: string} = {
+  amazon_us: 'https://advertising-api.amazon.com',
+  amazon_ca: 'https://advertising-api.amazon.com',
+  amazon_uk: 'https://advertising-api-eu.amazon.com',
+  amazon_ge: 'https://advertising-api-eu.amazon.com',
+  amazon_fr: 'https://advertising-api-eu.amazon.com',
+  amazon_it: 'https://advertising-api-eu.amazon.com',
+};
 
 const startDate = '2023-05-12';
 const endDate = '2023-05-13';
@@ -34,6 +46,8 @@ export class AmazonController {
     public userRepository: UserRepository,
     @repository(SkuViewRepository)
     public skuViewRepository: SkuViewRepository,
+    @repository(ChannelsRepository)
+    public channelsRepository: ChannelsRepository,
   ) {}
 
   @post('/api/amazon/fetch')
@@ -363,4 +377,93 @@ export class AmazonController {
       });
     return result;
   };
+
+  @post('/api/amazon/profiles')
+  async fetchAmazonProfiles(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              token: {type: 'string'},
+              marketplace: {type: 'string'},
+            },
+            required: ['token', 'marketplace'],
+          },
+        },
+      },
+    })
+    requestBody: {
+      token: string;
+      marketplace: string;
+    },
+  ): Promise<any> {
+    console.log(requestBody);
+
+    const token = requestBody.token;
+    const marketplace_connected = requestBody.marketplace + '_connected';
+    const marketplace_profile_id = requestBody.marketplace + '_profile_id';
+
+    if (!token) {
+      throw new HttpErrors.Forbidden('A token is required for authentication');
+    }
+
+    try {
+      const userInfo = jwt.verify(token, secretKey);
+      console.log('userInfo: ', userInfo);
+
+      const selectedUser: User = await this.userRepository.findById(
+        //@ts-ignore
+        userInfo?.user?.id,
+      );
+
+      console.log(selectedUser);
+      if (!selectedUser) {
+        throw new HttpErrors.NotFound('User not found');
+      }
+
+      //@ts-ignore
+      const customerId: number = selectedUser?.customer_id;
+
+      try {
+        // Use the findById method to retrieve the record
+        //@ts-ignore
+        const channels: Channels | null = await this.channelsRepository.findOne(
+          {
+            where: {customer_id: customerId},
+          },
+        );
+
+        if (channels) {
+          console.log('channels found:', channels);
+
+          //@ts-ignore
+          if (channels[marketplace_connected]) {
+            console.log('Platform connected');
+
+            //@ts-ignore
+            if (!channels[marketplace_profile_id]) {
+              console.log('it is null');
+              let base_url = amazon_base_urls[requestBody.marketplace];
+              console.log(base_url);
+              return base_url;
+            }
+          } else {
+            return new HttpErrors.MethodNotAllowed(
+              'Please connect to platform first',
+            );
+          }
+        } else {
+          console.log('Channel not found');
+          return new HttpErrors.InternalServerError('Something went wrong');
+        }
+      } catch (err) {
+        console.log('channels fetch failed: ', err);
+        throw new HttpErrors.InternalServerError('Something went wrong');
+      }
+    } catch (err) {
+      throw new HttpErrors.Unauthorized('Invalid Token');
+    }
+  }
 }

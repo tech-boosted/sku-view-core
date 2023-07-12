@@ -1,9 +1,9 @@
 import {inject} from '@loopback/core';
-import {DefaultCrudRepository} from '@loopback/repository';
+import {DefaultTransactionalRepository} from '@loopback/repository';
 import {SkuviewDsDataSource} from '../datasources';
 import {User, UserRelations} from '../models';
 
-export class UserRepository extends DefaultCrudRepository<
+export class UserRepository extends DefaultTransactionalRepository<
   User,
   typeof User.prototype.customer_id,
   UserRelations

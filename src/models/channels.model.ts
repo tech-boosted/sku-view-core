@@ -1,20 +1,27 @@
-import {Entity, model, property} from '@loopback/repository';
+import {Entity, belongsTo, model, property} from '@loopback/repository';
+import {User} from './user.model';
 
 @model()
 export class Channels extends Entity {
   @property({
     type: 'number',
     id: true,
+    generated: true,
   })
   id?: number;
 
+  @belongsTo(() => User, {keyTo: 'customer_id', name: 'customer'})
+  customer_id: number;
+
   @property({
     type: 'string',
+    default: '',
   })
   amazon_us_refresh_token?: string;
 
   @property({
     type: 'string',
+    default: '',
   })
   amazon_us_access_token?: string;
 
@@ -31,11 +38,13 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+    default: '',
   })
   amazon_uk_refresh_token?: string;
 
   @property({
     type: 'string',
+    default: '',
   })
   amazon_uk_access_token?: string;
 
@@ -52,11 +61,13 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+    default: '',
   })
   amazon_ca_refresh_token?: string;
 
   @property({
     type: 'string',
+    default: '',
   })
   amazon_ca_access_token?: string;
 
@@ -73,11 +84,59 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+    default: '',
+  })
+  amazon_ge_refresh_token?: string;
+
+  @property({
+    type: 'string',
+    default: '',
+  })
+  amazon_ge_access_token?: string;
+
+  @property({
+    type: 'boolean',
+    default: false,
+  })
+  amazon_ge_connected?: boolean;
+
+  @property({
+    type: 'string',
+  })
+  amazon_ge_profile_id?: string;
+
+  @property({
+    type: 'string',
+    default: '',
+  })
+  amazon_it_refresh_token?: string;
+
+  @property({
+    type: 'string',
+    default: '',
+  })
+  amazon_it_access_token?: string;
+
+  @property({
+    type: 'boolean',
+    default: false,
+  })
+  amazon_it_connected?: boolean;
+
+  @property({
+    type: 'string',
+  })
+  amazon_it_profile_id?: string;
+
+  @property({
+    type: 'string',
+    default: '',
   })
   google_refresh_token?: string;
 
   @property({
     type: 'string',
+    default: '',
   })
   google_access_token?: string;
 

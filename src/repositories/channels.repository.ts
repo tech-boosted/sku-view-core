@@ -1,11 +1,11 @@
 import {inject} from '@loopback/core';
-import {DefaultCrudRepository} from '@loopback/repository';
+import {DefaultTransactionalRepository} from '@loopback/repository';
 import {SkuviewDsDataSource} from '../datasources';
 import {Channels, ChannelsRelations} from '../models';
 
-export class ChannelsRepository extends DefaultCrudRepository<
+export class ChannelsRepository extends DefaultTransactionalRepository<
   Channels,
-  typeof Channels.prototype.id,
+  typeof Channels.prototype.customer_id,
   ChannelsRelations
 > {
   constructor(

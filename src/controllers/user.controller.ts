@@ -20,7 +20,7 @@ import {
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {User} from '../models';
-import {UserRepository} from '../repositories';
+import {ChannelsRepository, UserRepository} from '../repositories';
 
 //@ts-ignore
 const secretKey: jwt.Secret = process.env.SECRETKEY;
@@ -30,6 +30,8 @@ export class UserController {
   constructor(
     @repository(UserRepository)
     public userRepository: UserRepository,
+    @repository(ChannelsRepository)
+    public channelsRepository: ChannelsRepository,
   ) {}
 
   @post('/user/login')
@@ -155,40 +157,60 @@ export class UserController {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(user.password, salt);
 
-    const newUser = await this.userRepository.create({
-      ...user,
-      password: hashedPassword,
-    });
+    // Perform the transaction
+    const tx = await this.userRepository.beginTransaction();
+    console.log('transaction started');
+    try {
+      // Step 1: Insert a new record into the Users table
+      const newUser = await this.userRepository.create(
+        {
+          ...user,
+          password: hashedPassword,
+        },
+        {transaction: tx, autoGenerateId: true},
+      );
+      console.log('user created');
+      console.log('newUser: ', newUser);
 
-    const payload = {user: {id: newUser.customer_id}};
-    const token = jwt.sign(payload, secretKey, {expiresIn: tokenExpiryTime});
+      // Step 2: Retrieve the generated customer_id
+      const customer_id = newUser.customer_id;
 
-    // const credentialsObj = {
-    //   amazon: {
-    //     connected: newUser.credentials.amazon.connected,
-    //   },
-    //   google: {
-    //     connected: newUser.credentials.google.connected,
-    //   },
-    //   facebook: {
-    //     connected: newUser.credentials.facebook.connected,
-    //   },
-    // };
+      // Step 3: Insert a record into the Channels table using the retrieved customer_id
+      await this.channelsRepository.create(
+        {customer_id: customer_id},
+        {transaction: tx, autoGenerateId: true},
+      );
+      console.log('channel created');
 
-    const userInfo = {
-      firstname: newUser.firstname,
-      lastname: newUser.lastname,
-      company: newUser.company,
-      phone_number: newUser.phone_number,
-      email: newUser.email,
-      // credentials: credentialsObj,
-    };
+      const payload = {user: {id: newUser.customer_id}};
+      const token = jwt.sign(payload, secretKey, {expiresIn: tokenExpiryTime});
 
-    // this.userRepository.create(user);
+      const userInfo = {
+        firstname: newUser.firstname,
+        lastname: newUser.lastname,
+        company: newUser.company,
+        phone_number: newUser.phone_number,
+        email: newUser.email,
+      };
+      // Commit the transaction
+      await tx.commit();
 
-    //@ts-ignore
-    return {userInfo, token};
-    // return user;
+      // Transaction successful
+      console.log('Transaction completed successfully.');
+
+      //@ts-ignore
+      return {userInfo, token};
+    } catch (error) {
+      // Rollback the transaction if any error occurs
+      await tx.rollback();
+
+      // Handle the error
+      console.error('Error occurred during transaction:', error);
+
+      throw new HttpErrors.InternalServerError(
+        'Failed to create user. Transaction Failed',
+      );
+    }
   }
 
   @get('/user/count')
