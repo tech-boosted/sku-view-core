@@ -3,9 +3,8 @@
 import {repository} from '@loopback/repository';
 import {HttpErrors, post, requestBody} from '@loopback/rest';
 import axios from 'axios';
-import jwt, {JwtPayload} from 'jsonwebtoken';
-import qs from 'qs';
-import {Channels, SkuView, User} from '../models';
+import jwt from 'jsonwebtoken';
+import {Channels, User} from '../models';
 import {
   ChannelsRepository,
   SkuViewRepository,
@@ -16,6 +15,18 @@ import {createReadStream, createWriteStream} from 'fs';
 import * as stream from 'stream';
 import {promisify} from 'util';
 import zlib from 'zlib';
+import {AmazonResponse} from '../models/amazon-response-model';
+import {
+  AmazonCARepository,
+  AmazonFRRepository,
+  AmazonGERepository,
+  AmazonITRepository,
+  AmazonUKRepository,
+  AmazonUSRepository,
+} from '../repositories';
+import {validateToken} from '../service';
+import {GetAccessTokenWithRefreshToken} from '../service/amazon/getAccessTokenWithRefreshToken';
+import {InsertBulkData} from '../service/amazon/insertBulkData';
 const finished = promisify(stream.finished);
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms * 1000));
@@ -36,9 +47,14 @@ const amazon_base_urls: {[key: string]: string} = {
   amazon_fr: 'https://advertising-api-eu.amazon.com',
   amazon_it: 'https://advertising-api-eu.amazon.com',
 };
-
-const startDate = '2023-05-12';
-const endDate = '2023-05-13';
+const amazon_country_code: {[key: string]: string} = {
+  amazon_us: 'US',
+  amazon_ca: 'CA',
+  amazon_uk: 'UK',
+  amazon_ge: 'DE',
+  amazon_fr: 'FR',
+  amazon_it: 'IT',
+};
 
 export class AmazonController {
   constructor(
@@ -48,6 +64,18 @@ export class AmazonController {
     public skuViewRepository: SkuViewRepository,
     @repository(ChannelsRepository)
     public channelsRepository: ChannelsRepository,
+    @repository(AmazonUSRepository)
+    public amazonUSRepository: AmazonUSRepository,
+    @repository(AmazonCARepository)
+    public amazonCARepository: AmazonCARepository,
+    @repository(AmazonUKRepository)
+    public amazonUKRepository: AmazonUKRepository,
+    @repository(AmazonGERepository)
+    public amazonGERepository: AmazonGERepository,
+    @repository(AmazonFRRepository)
+    public amazonFRRepository: AmazonFRRepository,
+    @repository(AmazonITRepository)
+    public amazonITRepository: AmazonITRepository,
   ) {}
 
   @post('/api/amazon/fetch')
@@ -59,228 +87,255 @@ export class AmazonController {
             type: 'object',
             properties: {
               token: {type: 'string'},
+              marketplace: {type: 'string'},
+              startDate: {type: 'string'},
+              endDate: {type: 'string'},
             },
-            required: ['token'],
+            required: ['token', 'marketplace', 'startDate', 'endDate'],
           },
         },
       },
     })
     requestBody: {
       token: string;
+      marketplace: string;
+      startDate: string;
+      endDate: string;
     },
   ): Promise<any> {
-    const userPlatform = 'amazon_na';
-    const token = requestBody.token;
+    const marketplace_access_token = requestBody.marketplace + '_access_token';
+    const marketplace_refresh_token =
+      requestBody.marketplace + '_refresh_token';
+    const marketplace_profile_id = requestBody.marketplace + '_profile_id';
 
-    if (!token) {
-      throw new HttpErrors.Forbidden('A token is required for authentication');
-    }
+    // '992771789726947'
+    let selectedUser = await validateToken(
+      requestBody.token,
+      this.userRepository,
+    );
 
-    try {
-      const userInfo = jwt.verify(token, secretKey);
-      console.log('userInfo: ', userInfo);
+    var access_token: string = '';
+    var refresh_token: string = '';
+    var profile_id: string = '';
+    var startDate: string = '';
+    var endDate: string = '';
+    var marketplace: string = '';
+
+    startDate = requestBody?.startDate;
+    endDate = requestBody?.endDate;
+    marketplace = requestBody.marketplace;
+
+    const channels: Channels | null = await this.channelsRepository.findOne({
+      where: {customer_id: selectedUser.customer_id},
+    });
+
+    //@ts-ignore
+    access_token = channels[marketplace_access_token];
+    //@ts-ignore
+    refresh_token = channels[marketplace_refresh_token];
+    //@ts-ignore
+    profile_id = channels[marketplace_profile_id];
+
+    if (access_token !== '') {
       //@ts-ignore
-      const userId = userInfo?.user?.id;
-      var access_token: string = '';
-      var refresh_token: string = '';
+      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}.json.gz`;
+      //@ts-ignore
+      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}.json`;
 
-      const user: User = await this.userRepository.findById(
-        //@ts-ignore
-        userInfo?.user?.id,
-      );
-      if (!user) {
-        throw new HttpErrors.NotFound('User not found');
-      }
+      const callback = () => {
+        const amazon_respositories: {[key: string]: any} = {
+          amazon_us: this.amazonUSRepository,
+          amazon_ca: this.amazonCARepository,
+          amazon_uk: this.amazonUKRepository,
+          amazon_ge: this.amazonGERepository,
+          amazon_fr: this.amazonFRRepository,
+          amazon_it: this.amazonITRepository,
+        };
+        console.log('Download complete');
+        var gunzip = zlib.createGunzip();
+        var rstream = createReadStream(download_path_zip);
+        var wstream = createWriteStream(download_path_json);
+        rstream.pipe(gunzip).pipe(wstream);
+        console.log('writing');
+        wstream.on('finish', async () => {
+          console.log('completed writing');
+          let downloaded_data = await import(download_path_json);
+          downloaded_data = downloaded_data.default;
 
-      // //@ts-ignore
-      // access_token = user['amazon_na_access_token'];
-      // //@ts-ignore
-      // refresh_token = user['amazon_na_refresh_token'];
+          let newData: {}[] = [];
 
-      //ToDo
-      access_token = '';
-      refresh_token = '';
+          for (let i = 0; i < downloaded_data.length; i++) {
+            const x: AmazonResponse = downloaded_data[i];
+            let formattedDate = x.date;
+            //@ts-ignore
+            newData.push({
+              customerId: Number(selectedUser?.customer_id),
+              sku: x.advertisedSku,
+              date: x.date,
+              impressions: x.impressions,
+              clicks: x.clicks,
+              spend: x.spend,
+              sales: x.sales1d,
+              orders: x.unitsSoldSameSku1d,
+              campaignId: x.campaignId,
+              campaignName: x.campaignName,
+              profileId: profile_id,
+            });
+          }
 
-      if (access_token !== '') {
-        //@ts-ignore
-        const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${user?.customer_id}.json.gz`;
-        //@ts-ignore
-        const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${user?.customer_id}.json`;
+          let result = await InsertBulkData(
+            amazon_respositories[marketplace],
+            //@ts-ignore
+            newData,
+          );
+          if (!result) {
+            console.log(
+              'Could not insert data in amazon: ',
+              marketplace,
+              selectedUser?.customer_id,
+            );
+            return;
+          }
+        });
+      };
 
+      try {
         let reportId = await this.create_report(
           access_token,
           refresh_token,
-          user,
+          profile_id,
+          startDate,
+          endDate,
+          marketplace,
+          marketplace_access_token,
+          selectedUser,
         );
         // let reportId = '0fd0443d-f321-4f11-932a-7bafd1c95601';
-        this.check_report_status(reportId, access_token, userInfo).then(
-          zip_url => {
-            const callback = () => {
-              console.log('Download complete');
-              var gunzip = zlib.createGunzip();
-              var rstream = createReadStream(download_path_zip);
-              var wstream = createWriteStream(download_path_json);
-              rstream.pipe(gunzip).pipe(wstream);
-              console.log('writing');
-              wstream.on('finish', async () => {
-                console.log('completed writing');
-                let downloaded_data = await import(download_path_json);
-                downloaded_data = downloaded_data.default;
-
-                for (let i = 0; i < downloaded_data.length; i++) {
-                  const x = downloaded_data[i];
-                  let formattedDate = x.date;
-                  // formattedDate;
-                  //@ts-ignore
-                  let newData: Omit<SkuView, 'id'> = {
-                    customerId: Number(user?.customer_id),
-                    sku: x.advertisedSku,
-                    date: x.date,
-                    platform: userPlatform,
-                    impressions: x.impressions,
-                    clicks: x.clicks,
-                    spend: x.spend,
-                    sales: x.sales1d,
-                    orders: x.unitsSoldSameSku1d,
-                    campaignId: x.campaignId,
-                    campaignName: x.campaignName,
-                  };
-                  await this.skuViewRepository.create(newData);
-                }
-              });
-            };
-
-            this.download_report(zip_url ?? '', download_path_zip, callback);
-          },
+        let zip_url = await this.check_report_status(
+          reportId,
+          access_token,
+          marketplace,
+          profile_id,
         );
+        //@ts-ignore
+        await this.download_report(zip_url, download_path_zip, callback);
+      } catch (err) {
+        console.log(err);
       }
-    } catch (err) {
-      throw new HttpErrors.Unauthorized('Invalid Token');
     }
 
     return {
-      message: 'Request received',
+      status: true,
+      value: 'Request received',
     };
   }
 
   create_report = async (
     access_token: string,
     refresh_token: string,
+    profile_id: string,
+    start_date: string,
+    end_date: string,
+    marketplace: string,
+    marketplace_access_token: string,
     user: User,
   ) => {
-    let data = JSON.stringify({
-      name: 'SP Report Exmaple',
-      startDate: startDate,
-      endDate: endDate,
-      configuration: {
-        adProduct: 'SPONSORED_PRODUCTS',
-        groupBy: ['advertiser'],
-        columns: [
-          'advertisedSku',
-          'impressions',
-          'clicks',
-          'spend',
-          'sales1d',
-          'campaignId',
-          'date',
-          'campaignName',
-          'unitsSoldSameSku1d',
-        ],
-        reportTypeId: 'spAdvertisedProduct',
-        timeUnit: 'DAILY',
-        format: 'GZIP_JSON',
-      },
-    });
-
-    let config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: 'https://advertising-api.amazon.com/reporting/reports',
-      headers: {
-        'Content-Type': 'application/vnd.createasyncreportrequest.v3+json',
-        'Amazon-Advertising-API-ClientId': AMAZON_CLIENT_ID,
-        'Amazon-Advertising-API-Scope': '992771789726947',
-        Authorization: 'Bearer ' + access_token,
-      },
-      data: data,
-    };
-
-    console.log('creating report');
     // Generate report
     let reportId = '';
-    await axios
-      .request(config)
-      .then(response => {
-        reportId = response.data.reportId;
-        console.log('got report id');
-        console.log('reportId: ', reportId);
-      })
-      .catch(async error => {
-        console.log(config.url, ' : ', error.response.data);
-        console.log('report generate failed');
-        if (error.response.status == 401) {
-          console.log('unauthorized to create report');
+    let createReportCount = 2;
 
-          var new_access_token_result =
-            await this.get_access_token_from_refresh_token(refresh_token);
-          //@ts-ignore
-          if (new_access_token_result['status']) {
-            //@ts-ignore
-            var new_access_token = new_access_token_result['value'];
-
-            //@ts-ignore
-            var updatedCustomerData: User = {
-              ...user,
-              //ToDo
-              // amazon_na_access_token: new_access_token,
-            };
-            this.userRepository.updateById(
-              user?.customer_id,
-              updatedCustomerData,
-            );
-            access_token = new_access_token;
-
-            config = {
-              ...config,
-              headers: {
-                ...config.headers,
-                Authorization: 'Bearer ' + new_access_token,
-              },
-            };
-
-            await axios
-              .request(config)
-              .then(response => {
-                reportId = response.data.reportId;
-                console.log('got report id');
-                console.log('reportId: ', reportId);
-              })
-              .catch(async error => {
-                console.log(error);
-                throw new HttpErrors.Unauthorized(
-                  'Amazon: Invalid Token after refresh',
-                );
-              });
-          }
-        } else {
-          console.log('Amazon: Failed to create report');
-          throw new HttpErrors.Unauthorized();
-        }
+    while (createReportCount !== 0) {
+      const channels: Channels | null = await this.channelsRepository.findOne({
+        where: {customer_id: user.customer_id},
       });
+
+      //@ts-ignore
+      access_token = channels[marketplace_access_token];
+
+      let requestData = JSON.stringify({
+        name: 'SP Report Exmaple',
+        startDate: start_date,
+        endDate: end_date,
+        configuration: {
+          adProduct: 'SPONSORED_PRODUCTS',
+          groupBy: ['advertiser'],
+          columns: [
+            'advertisedSku',
+            'impressions',
+            'clicks',
+            'spend',
+            'sales1d',
+            'campaignId',
+            'date',
+            'campaignName',
+            'unitsSoldSameSku1d',
+          ],
+          reportTypeId: 'spAdvertisedProduct',
+          timeUnit: 'DAILY',
+          format: 'GZIP_JSON',
+        },
+      });
+
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: amazon_base_urls[marketplace] + '/reporting/reports',
+        headers: {
+          'Content-Type': 'application/vnd.createasyncreportrequest.v3+json',
+          'Amazon-Advertising-API-ClientId': AMAZON_CLIENT_ID,
+          'Amazon-Advertising-API-Scope': profile_id,
+          Authorization: 'Bearer ' + access_token,
+        },
+        data: requestData,
+      };
+
+      console.log('creating report');
+
+      await axios
+        .request(config)
+        .then(response => {
+          reportId = response?.data.reportId;
+          console.log('got report id');
+          console.log('reportId: ', reportId);
+          createReportCount = 0;
+        })
+        .catch(async error => {
+          // console.log(config.url, ' : ', error.response);
+          console.log('report generate failed');
+          if (error.response.status == 401) {
+            console.log('unauthorized to create report');
+            await GetAccessTokenWithRefreshToken(
+              user,
+              marketplace,
+              refresh_token,
+              this.channelsRepository,
+            );
+            createReportCount -= 1;
+          } else {
+            console.log('Amazon: Failed to create report');
+            throw new HttpErrors.Unauthorized();
+          }
+        });
+    }
     return reportId;
   };
 
   check_report_status = async (
     reportId: any,
     access_token: string,
-    userInfo: string | JwtPayload,
+    marketplace: string,
+    profile_id: string,
   ) => {
-    var count = 10;
+    var count = 15;
     var result;
     while (count != 0) {
       console.log('count: ', count);
-      result = await this.call_report_status_api(reportId, access_token);
-      console.log(result);
+      result = await this.call_report_status_api(
+        reportId,
+        access_token,
+        marketplace,
+        profile_id,
+      );
       if (result.status) {
         count = 0;
       } else {
@@ -295,16 +350,21 @@ export class AmazonController {
     return '';
   };
 
-  call_report_status_api = async (reportId: string, access_token: string) => {
+  call_report_status_api = async (
+    reportId: string,
+    access_token: string,
+    marketplace: string,
+    profile_id: string,
+  ) => {
     let result = {status: false, value: null};
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://advertising-api.amazon.com/reporting/reports/' + reportId,
+      url: amazon_base_urls[marketplace] + '/reporting/reports/' + reportId,
       headers: {
         'Content-Type': 'application/vnd.createasyncreportrequest.v3+json',
         'Amazon-Advertising-API-ClientId': AMAZON_CLIENT_ID,
-        'Amazon-Advertising-API-Scope': '3999774442873617',
+        'Amazon-Advertising-API-Scope': profile_id,
         Authorization: 'Bearer ' + access_token,
       },
     };
@@ -316,7 +376,6 @@ export class AmazonController {
         let fileStatus = response.data.status;
         let fileUrl = response.data.url;
         if (fileStatus != 'PENDING' && fileUrl != null) {
-          console.log('fileUrl: ', fileUrl);
           result.status = true;
           result.value = fileUrl;
         } else {
@@ -326,7 +385,7 @@ export class AmazonController {
         }
       })
       .catch(error => {
-        console.log('reportId -', config.url, ' : ', error.data.message);
+        console.log('reportId -', config.url, ' : ', error);
         console.log('report status failed');
         result.status = false;
         result.value = null;
@@ -348,34 +407,6 @@ export class AmazonController {
       response.data.pipe(writer);
       return finished(writer).then(callback); //this is a Promise
     });
-  };
-
-  get_access_token_from_refresh_token = async (refresh_token: string) => {
-    var result;
-    console.log('getting access token from refresh token');
-    let data = qs.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: refresh_token,
-      client_id: AMAZON_CLIENT_ID,
-      client_secret: AMAZON_CLIENT_SECRECT,
-    });
-
-    var headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    };
-
-    await axios
-      .post('https://api.amazon.com/auth/o2/token', data, {headers: headers})
-      .then(response => {
-        console.log('Got access token from refresh token');
-        result = {status: true, value: response.data.access_token};
-      })
-      .catch(error => {
-        console.log('failed access token from refresh token');
-        console.log(error.response.data.error_description);
-        result = {status: false, value: error.response.data.error_description};
-      });
-    return result;
   };
 
   @post('/api/amazon/profiles')
@@ -401,69 +432,141 @@ export class AmazonController {
   ): Promise<any> {
     console.log(requestBody);
 
-    const token = requestBody.token;
     const marketplace_connected = requestBody.marketplace + '_connected';
     const marketplace_profile_id = requestBody.marketplace + '_profile_id';
+    const marketplace_access_token = requestBody.marketplace + '_access_token';
 
-    if (!token) {
-      throw new HttpErrors.Forbidden('A token is required for authentication');
-    }
+    let selectedUser = await validateToken(
+      requestBody.token,
+      this.userRepository,
+    );
+    //@ts-ignore
+    const customerId: number = selectedUser?.customer_id;
 
     try {
-      const userInfo = jwt.verify(token, secretKey);
-      console.log('userInfo: ', userInfo);
-
-      const selectedUser: User = await this.userRepository.findById(
-        //@ts-ignore
-        userInfo?.user?.id,
-      );
-
-      console.log(selectedUser);
-      if (!selectedUser) {
-        throw new HttpErrors.NotFound('User not found');
-      }
-
+      // Use the findById method to retrieve the record
       //@ts-ignore
-      const customerId: number = selectedUser?.customer_id;
+      const channels: Channels | null = await this.channelsRepository.findOne({
+        where: {customer_id: customerId},
+      });
 
-      try {
-        // Use the findById method to retrieve the record
+      if (channels) {
         //@ts-ignore
-        const channels: Channels | null = await this.channelsRepository.findOne(
-          {
-            where: {customer_id: customerId},
-          },
-        );
-
-        if (channels) {
-          console.log('channels found:', channels);
-
+        if (channels[marketplace_connected]) {
           //@ts-ignore
-          if (channels[marketplace_connected]) {
-            console.log('Platform connected');
+          if (!channels[marketplace_profile_id]) {
+            let base_url = amazon_base_urls[requestBody.marketplace];
 
             //@ts-ignore
-            if (!channels[marketplace_profile_id]) {
-              console.log('it is null');
-              let base_url = amazon_base_urls[requestBody.marketplace];
-              console.log(base_url);
-              return base_url;
+            let access_token = channels[marketplace_access_token];
+            let headers = {
+              'Amazon-Advertising-API-ClientId': AMAZON_CLIENT_ID,
+              Authorization: 'Bearer ' + access_token,
+            };
+            let response;
+            let result: any[] = [];
+            try {
+              await axios
+                .get(base_url + '/v2/profiles', {headers: headers})
+                .then(res => {
+                  console.log('Got profiles');
+                  for (let i = 0; i < res?.data.length; i++) {
+                    const element = res?.data[i];
+                    if (
+                      element['countryCode'] ===
+                      amazon_country_code[requestBody.marketplace]
+                    ) {
+                      result.push(element);
+                    }
+                  }
+                  response = {status: true, value: result};
+                })
+                .catch(err => {
+                  console.log('ef');
+                  if (err.response.status == 401) {
+                    // access_token expired
+                    console.log('profile failure 401');
+                    response = {status: false, value: err.response.status};
+                  } else {
+                    response = {
+                      status: false,
+                      value: err.response.statusText,
+                    };
+                  }
+                });
+              return response;
+            } catch (err) {
+              return new HttpErrors.InternalServerError('Something went wrong');
             }
           } else {
-            return new HttpErrors.MethodNotAllowed(
-              'Please connect to platform first',
-            );
+            console.log('Profile id exists');
+            return new HttpErrors.InternalServerError('Something went wrong');
           }
         } else {
-          console.log('Channel not found');
-          return new HttpErrors.InternalServerError('Something went wrong');
+          return new HttpErrors.MethodNotAllowed(
+            'Please connect to platform first',
+          );
         }
-      } catch (err) {
-        console.log('channels fetch failed: ', err);
-        throw new HttpErrors.InternalServerError('Something went wrong');
+      } else {
+        console.log('Channel not found');
+        return new HttpErrors.InternalServerError('Something went wrong');
       }
     } catch (err) {
-      throw new HttpErrors.Unauthorized('Invalid Token');
+      console.log('channels fetch failed: ', err);
+      throw new HttpErrors.InternalServerError('Something went wrong');
+    }
+  }
+
+  @post('/api/amazon/setProfile')
+  async setProfile(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              token: {type: 'string'},
+              marketplace: {type: 'string'},
+              profileId: {type: 'string'},
+            },
+            required: ['token', 'marketplace', 'profileId'],
+          },
+        },
+      },
+    })
+    requestBody: {
+      token: string;
+      marketplace: string;
+      profileId: string;
+    },
+  ): Promise<any> {
+    const marketplace_profile_id = requestBody.marketplace + '_profile_id';
+
+    let selectedUser = await validateToken(
+      requestBody.token,
+      this.userRepository,
+    );
+    let customerId = selectedUser?.customer_id;
+    let result;
+    try {
+      let updatedChannel = await this.channelsRepository.updateAll(
+        {
+          [marketplace_profile_id]: requestBody?.profileId,
+        },
+        {
+          customer_id: customerId,
+        },
+      );
+
+      if (updatedChannel.count === 1) {
+        result = 'Successfully updated profile id';
+        return {status: true, value: result};
+      } else {
+        result = 'Failed to update profiel id';
+        return {status: false, value: result};
+      }
+    } catch (err) {
+      HttpErrors.InternalServerError('Profile id update failed');
     }
   }
 }

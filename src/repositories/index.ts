@@ -6,3 +6,4 @@ export * from './amazon-ca.repository';
 export * from './amazon-ge.repository';
 export * from './channels.repository';
 export * from './amazon-it.repository';
+export * from './amazon-fr.repository';

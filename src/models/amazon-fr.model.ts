@@ -1,7 +1,7 @@
 import {Entity, model, property} from '@loopback/repository';
 
 @model()
-export class AmazonUS extends Entity {
+export class AmazonFR extends Entity {
   @property({
     type: 'number',
     generated: true,
@@ -80,13 +80,13 @@ export class AmazonUS extends Entity {
   })
   campaignName?: string;
 
-  constructor(data?: Partial<AmazonUS>) {
+  constructor(data?: Partial<AmazonFR>) {
     super(data);
   }
 }
 
-export interface AmazonUSRelations {
+export interface AmazonFRRelations {
   // describe navigational properties here
 }
 
-export type AmazonUSWithRelations = AmazonUS & AmazonUSRelations;
+export type AmazonFRWithRelations = AmazonFR & AmazonFRRelations;

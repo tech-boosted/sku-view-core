@@ -44,11 +44,23 @@ export class SkuView extends Entity {
 
   @property({
     type: 'number',
+    mysql: {
+      columnName: 'spend',
+      dataType: 'float',
+      precision: 10,
+      scale: 2,
+    },
   })
   spend?: number;
 
   @property({
     type: 'number',
+    mysql: {
+      columnName: 'sales',
+      dataType: 'float',
+      precision: 10,
+      scale: 2,
+    },
   })
   sales?: number;
 

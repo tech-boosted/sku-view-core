@@ -17,10 +17,10 @@ export class AmazonCA extends Entity {
   customerId: number;
 
   @property({
-    type: 'number',
+    type: 'string',
     required: true,
   })
-  profileId: number;
+  profileId: string;
 
   @property({
     type: 'string',
@@ -45,11 +45,23 @@ export class AmazonCA extends Entity {
 
   @property({
     type: 'number',
+    mysql: {
+      columnName: 'spend',
+      dataType: 'float',
+      precision: 10,
+      scale: 2,
+    },
   })
   spend?: number;
 
   @property({
     type: 'number',
+    mysql: {
+      columnName: 'sales',
+      dataType: 'float',
+      precision: 10,
+      scale: 2,
+    },
   })
   sales?: number;
 

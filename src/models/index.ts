@@ -6,3 +6,4 @@ export * from './amazon-us.model';
 export * from './channels.model';
 export * from './sku-view.model';
 export * from './user.model';
+export * from './amazon-fr.model';
