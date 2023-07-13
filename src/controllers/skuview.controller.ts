@@ -1,19 +1,5 @@
-import {
-  Count,
-  CountSchema,
-  Filter,
-  repository,
-  Where,
-} from '@loopback/repository';
-import {
-  get,
-  getModelSchemaRef,
-  HttpErrors,
-  param,
-  post,
-  requestBody,
-  response,
-} from '@loopback/rest';
+import {Filter, repository} from '@loopback/repository';
+import {HttpErrors, post, requestBody} from '@loopback/rest';
 import jwt from 'jsonwebtoken';
 import {SkuView, User} from '../models';
 import {SkuData} from '../models/SkuData';
@@ -73,7 +59,7 @@ export class SkuviewController {
       }
       const query: Filter<SkuView> = {
         where: {
-          customerId: user.customer_id,
+          customer_id: user.customer_id,
           platform: 'amazon_na',
           date: {
             between: [startDate, endDate],
@@ -215,53 +201,53 @@ export class SkuviewController {
     return result;
   }
 
-  @post('/api/skus')
-  @response(200, {
-    description: 'SkuView model instance',
-    content: {'application/json': {schema: getModelSchemaRef(SkuView)}},
-  })
-  async create(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(SkuView, {
-            title: 'NewSkuView',
-            exclude: ['id'],
-          }),
-        },
-      },
-    })
-    skuView: Omit<SkuView, 'id'>,
-  ): Promise<SkuView> {
-    return this.skuViewRepository.create(skuView);
-  }
+  // @post('/api/skus')
+  // @response(200, {
+  //   description: 'SkuView model instance',
+  //   content: {'application/json': {schema: getModelSchemaRef(SkuView)}},
+  // })
+  // async create(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(SkuView, {
+  //           title: 'NewSkuView',
+  //           exclude: ['id'],
+  //         }),
+  //       },
+  //     },
+  //   })
+  //   skuView: Omit<SkuView, 'id'>,
+  // ): Promise<SkuView> {
+  //   return this.skuViewRepository.create(skuView);
+  // }
 
-  @get('/api/skus/count')
-  @response(200, {
-    description: 'SkuView model count',
-    content: {'application/json': {schema: CountSchema}},
-  })
-  async count(@param.where(SkuView) where?: Where<SkuView>): Promise<Count> {
-    return this.skuViewRepository.count(where);
-  }
+  // @get('/api/skus/count')
+  // @response(200, {
+  //   description: 'SkuView model count',
+  //   content: {'application/json': {schema: CountSchema}},
+  // })
+  // async count(@param.where(SkuView) where?: Where<SkuView>): Promise<Count> {
+  //   return this.skuViewRepository.count(where);
+  // }
 
-  @get('/api/skus')
-  @response(200, {
-    description: 'Array of SkuView model instances',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'array',
-          items: getModelSchemaRef(SkuView, {includeRelations: true}),
-        },
-      },
-    },
-  })
-  async find(
-    @param.filter(SkuView) filter?: Filter<SkuView>,
-  ): Promise<SkuView[]> {
-    return this.skuViewRepository.find(filter);
-  }
+  // @get('/api/skus')
+  // @response(200, {
+  //   description: 'Array of SkuView model instances',
+  //   content: {
+  //     'application/json': {
+  //       schema: {
+  //         type: 'array',
+  //         items: getModelSchemaRef(SkuView, {includeRelations: true}),
+  //       },
+  //     },
+  //   },
+  // })
+  // async find(
+  //   @param.filter(SkuView) filter?: Filter<SkuView>,
+  // ): Promise<SkuView[]> {
+  //   return this.skuViewRepository.find(filter);
+  // }
 
   // @patch('/api/skus')
   // @response(200, {

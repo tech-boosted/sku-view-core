@@ -17,7 +17,7 @@ export class AmazonCA extends Entity {
     type: 'number',
     required: true,
   })
-  customerId: number;
+  customer_id: number;
 
   @property({
     type: 'string',

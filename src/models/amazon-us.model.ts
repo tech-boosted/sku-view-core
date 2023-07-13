@@ -17,7 +17,7 @@ export class AmazonUS extends Entity {
     type: 'number',
     required: true,
   })
-  customerId: number;
+  customer_id: number;
 
   @property({
     type: 'string',

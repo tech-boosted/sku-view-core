@@ -7,3 +7,5 @@ export * from './channels.model';
 export * from './sku-view.model';
 export * from './user.model';
 export * from './amazon-fr.model';
+export * from './amazon-dates-meta-data.model';
+export * from './amazon-report-id.model';

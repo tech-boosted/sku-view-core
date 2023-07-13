@@ -1,2 +1,2 @@
-export * from './amazon/insertData';
+export * from './amazon';
 export * from './validateToken';

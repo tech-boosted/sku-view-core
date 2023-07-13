@@ -41,7 +41,7 @@ export const GetAccessTokenWithRefreshToken = async (
       console.log('Got access token from refresh token');
       let new_access_token = response.data.access_token;
 
-      let customerId = selectedUser?.customer_id;
+      let customer_id = selectedUser?.customer_id;
       let result;
       try {
         let updatedChannel = await channelsRepository.updateAll(
@@ -49,7 +49,7 @@ export const GetAccessTokenWithRefreshToken = async (
             [marketplace_access_token]: new_access_token,
           },
           {
-            customer_id: customerId,
+            customer_id: customer_id,
           },
         );
 
