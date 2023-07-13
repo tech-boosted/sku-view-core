@@ -7,6 +7,9 @@ export class SkuView extends Entity {
     generated: true,
     id: true,
     required: false,
+    mysql: {
+      dataType: 'bigint',
+    },
   })
   id?: number;
 
@@ -71,6 +74,9 @@ export class SkuView extends Entity {
 
   @property({
     type: 'number',
+    mysql: {
+      dataType: 'bigint',
+    },
   })
   campaignId?: number;
 

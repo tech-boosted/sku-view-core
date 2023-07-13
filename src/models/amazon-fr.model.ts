@@ -7,6 +7,9 @@ export class AmazonFR extends Entity {
     generated: true,
     id: true,
     required: false,
+    mysql: {
+      dataType: 'bigint',
+    },
   })
   id?: number;
 
@@ -72,6 +75,9 @@ export class AmazonFR extends Entity {
 
   @property({
     type: 'number',
+    mysql: {
+      dataType: 'bigint',
+    },
   })
   campaignId?: number;
 

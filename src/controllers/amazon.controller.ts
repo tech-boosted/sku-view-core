@@ -183,19 +183,11 @@ export class AmazonController {
             });
           }
 
-          let result = await InsertBulkData(
+          InsertBulkData(
             amazon_respositories[marketplace],
             //@ts-ignore
             newData,
           );
-          if (!result) {
-            console.log(
-              'Could not insert data in amazon: ',
-              marketplace,
-              selectedUser?.customer_id,
-            );
-            return;
-          }
         });
       };
 
@@ -213,12 +205,13 @@ export class AmazonController {
         // let reportId = '0fd0443d-f321-4f11-932a-7bafd1c95601';
         let zip_url = await this.check_report_status(
           reportId,
-          access_token,
           marketplace,
           profile_id,
+          selectedUser,
+          marketplace_access_token,
         );
         //@ts-ignore
-        await this.download_report(zip_url, download_path_zip, callback);
+        this.download_report(zip_url, download_path_zip, callback);
       } catch (err) {
         console.log(err);
       }
@@ -322,9 +315,10 @@ export class AmazonController {
 
   check_report_status = async (
     reportId: any,
-    access_token: string,
     marketplace: string,
     profile_id: string,
+    selectedUser: User,
+    marketplace_access_token: string,
   ) => {
     var count = 15;
     var result;
@@ -332,9 +326,10 @@ export class AmazonController {
       console.log('count: ', count);
       result = await this.call_report_status_api(
         reportId,
-        access_token,
         marketplace,
         profile_id,
+        selectedUser,
+        marketplace_access_token,
       );
       if (result.status) {
         count = 0;
@@ -352,10 +347,19 @@ export class AmazonController {
 
   call_report_status_api = async (
     reportId: string,
-    access_token: string,
     marketplace: string,
     profile_id: string,
+    selectedUser: User,
+    marketplace_access_token: string,
   ) => {
+    const channels: Channels | null = await this.channelsRepository.findOne({
+      where: {customer_id: selectedUser.customer_id},
+    });
+
+    //@ts-ignore
+    let access_token = channels[marketplace_access_token];
+    console.log('using access token: ', access_token);
+
     let result = {status: false, value: null};
     let config = {
       method: 'get',
@@ -385,7 +389,7 @@ export class AmazonController {
         }
       })
       .catch(error => {
-        console.log('reportId -', config.url, ' : ', error);
+        console.log('reportId -', config.url, ' : ', error.data);
         console.log('report status failed');
         result.status = false;
         result.value = null;
