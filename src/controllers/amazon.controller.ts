@@ -77,6 +77,7 @@ export class AmazonController {
     public amazonReportIdRepository: AmazonReportIdRepository,
   ) {}
 
+  // Fetch data from Amazon API and store in database
   @post('/api/amazon/fetch')
   async fetchAmazonData(
     @requestBody({

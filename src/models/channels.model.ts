@@ -109,6 +109,29 @@ export class Channels extends Entity {
     type: 'string',
     default: '',
   })
+  amazon_fr_refresh_token?: string;
+
+  @property({
+    type: 'string',
+    default: '',
+  })
+  amazon_fr_access_token?: string;
+
+  @property({
+    type: 'boolean',
+    default: false,
+  })
+  amazon_fr_connected?: boolean;
+
+  @property({
+    type: 'string',
+  })
+  amazon_fr_profile_id?: string;
+
+  @property({
+    type: 'string',
+    default: '',
+  })
   amazon_it_refresh_token?: string;
 
   @property({
