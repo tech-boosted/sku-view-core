@@ -82,7 +82,6 @@ export class AmazonOnboardController {
       requestBody.marketplace +
       ']&redirect_uri=' +
       AMAZON_REDIRECT_URL;
-    console.log('hello');
 
     return loginWithAmazonUrl;
   }
@@ -95,10 +94,6 @@ export class AmazonOnboardController {
     @param.query.string('state') state: string,
     @param.query.string('error') error: string,
   ): Promise<any> {
-    console.log('code: ', code);
-    console.log('state: ', state);
-    console.log('error: ', error);
-
     if (error) {
       console.log(error);
       return response.redirect(String(CLIENT_AMAZON_FAIL_URL));
@@ -113,6 +108,7 @@ export class AmazonOnboardController {
 
       const marketplace_access_token = marketplace + '_access_token';
       const marketplace_refresh_token = marketplace + '_refresh_token';
+      const marketplace_connected = marketplace + '_connected';
 
       let selectedUser = await validateToken(token, this.userRepository);
 
@@ -138,6 +134,7 @@ export class AmazonOnboardController {
             {
               [marketplace_refresh_token]: refresh_token,
               [marketplace_access_token]: access_token,
+              [marketplace_connected]: true,
             },
             {
               customer_id: customer_id,

@@ -1,26 +1,16 @@
+import {repository} from '@loopback/repository';
 import {
-  Count,
-  CountSchema,
-  Filter,
-  FilterExcludingWhere,
-  repository,
-  Where,
-} from '@loopback/repository';
-import {
-  get,
-  getModelSchemaRef,
   HttpErrors,
-  param,
-  patch,
+  getModelSchemaRef,
   post,
-  put,
   requestBody,
   response,
 } from '@loopback/rest';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import {User} from '../models';
+import {Channels, User} from '../models';
 import {ChannelsRepository, UserRepository} from '../repositories';
+import {getChannelsList} from '../service/getChannelsList';
 
 //@ts-ignore
 const secretKey: jwt.Secret = process.env.SECRETKEY;
@@ -35,10 +25,6 @@ export class UserController {
   ) {}
 
   @post('/user/login')
-  @response(200, {
-    description: 'User model instance',
-    content: {'application/json': {schema: getModelSchemaRef(User)}},
-  })
   async login(
     @requestBody({
       content: {
@@ -77,17 +63,14 @@ export class UserController {
       const isMatch = await bcrypt.compare(credentials.password, user.password);
 
       if (isMatch) {
-        // const credentialsObj = {
-        //   amazon: {
-        //     connected: user.credentials.amazon.connected,
-        //   },
-        //   google: {
-        //     connected: user.credentials.google.connected,
-        //   },
-        //   facebook: {
-        //     connected: user.credentials.facebook.connected,
-        //   },
-        // };
+        //@ts-ignore
+        const channels: Channels = await this.channelsRepository.findOne({
+          where: {
+            customer_id: user.customer_id,
+          },
+        });
+
+        let userChannels = await getChannelsList(channels);
 
         const userInfo = {
           firstname: user.firstname,
@@ -95,7 +78,7 @@ export class UserController {
           company: user.company,
           phone_number: user.phone_number,
           email: user.email,
-          // credentials: credentialsObj,
+          channels: userChannels,
         };
 
         const payload = {user: {id: user.customer_id}};
@@ -213,30 +196,30 @@ export class UserController {
     }
   }
 
-  @get('/user/count')
-  @response(200, {
-    description: 'User model count',
-    content: {'application/json': {schema: CountSchema}},
-  })
-  async count(@param.where(User) where?: Where<User>): Promise<Count> {
-    return this.userRepository.count(where);
-  }
+  // @get('/user/count')
+  // @response(200, {
+  //   description: 'User model count',
+  //   content: {'application/json': {schema: CountSchema}},
+  // })
+  // async count(@param.where(User) where?: Where<User>): Promise<Count> {
+  //   return this.userRepository.count(where);
+  // }
 
-  @get('/user')
-  @response(200, {
-    description: 'Array of User model instances',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'array',
-          items: getModelSchemaRef(User, {includeRelations: true}),
-        },
-      },
-    },
-  })
-  async find(@param.filter(User) filter?: Filter<User>): Promise<User[]> {
-    return this.userRepository.find(filter);
-  }
+  // @get('/user')
+  // @response(200, {
+  //   description: 'Array of User model instances',
+  //   content: {
+  //     'application/json': {
+  //       schema: {
+  //         type: 'array',
+  //         items: getModelSchemaRef(User, {includeRelations: true}),
+  //       },
+  //     },
+  //   },
+  // })
+  // async find(@param.filter(User) filter?: Filter<User>): Promise<User[]> {
+  //   return this.userRepository.find(filter);
+  // }
 
   // @patch('/user')
   // @response(200, {
@@ -257,50 +240,50 @@ export class UserController {
   //   return this.userRepository.updateAll(user, where);
   // }
 
-  @get('/user/{id}')
-  @response(200, {
-    description: 'User model instance',
-    content: {
-      'application/json': {
-        schema: getModelSchemaRef(User, {includeRelations: true}),
-      },
-    },
-  })
-  async findById(
-    @param.path.number('id') id: number,
-    @param.filter(User, {exclude: 'where'}) filter?: FilterExcludingWhere<User>,
-  ): Promise<User> {
-    return this.userRepository.findById(id, filter);
-  }
+  // @get('/user/{id}')
+  // @response(200, {
+  //   description: 'User model instance',
+  //   content: {
+  //     'application/json': {
+  //       schema: getModelSchemaRef(User, {includeRelations: true}),
+  //     },
+  //   },
+  // })
+  // async findById(
+  //   @param.path.number('id') id: number,
+  //   @param.filter(User, {exclude: 'where'}) filter?: FilterExcludingWhere<User>,
+  // ): Promise<User> {
+  //   return this.userRepository.findById(id, filter);
+  // }
 
-  @patch('/user/{id}')
-  @response(204, {
-    description: 'User PATCH success',
-  })
-  async updateById(
-    @param.path.number('id') id: number,
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(User, {partial: true}),
-        },
-      },
-    })
-    user: User,
-  ): Promise<void> {
-    await this.userRepository.updateById(id, user);
-  }
+  // @patch('/user/{id}')
+  // @response(204, {
+  //   description: 'User PATCH success',
+  // })
+  // async updateById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(User, {partial: true}),
+  //       },
+  //     },
+  //   })
+  //   user: User,
+  // ): Promise<void> {
+  //   await this.userRepository.updateById(id, user);
+  // }
 
-  @put('/user/{id}')
-  @response(204, {
-    description: 'User PUT success',
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() user: User,
-  ): Promise<void> {
-    await this.userRepository.replaceById(id, user);
-  }
+  // @put('/user/{id}')
+  // @response(204, {
+  //   description: 'User PUT success',
+  // })
+  // async replaceById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody() user: User,
+  // ): Promise<void> {
+  //   await this.userRepository.replaceById(id, user);
+  // }
 
   // @del('/user/{id}')
   // @response(204, {
