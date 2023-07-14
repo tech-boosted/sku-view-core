@@ -37,78 +37,84 @@ export const create_report = async (
   let reportId = '';
   let createReportCount = 2;
 
-  while (createReportCount !== 0) {
-    const channels: Channels | null = await channelsRepository.findOne({
-      where: {customer_id: user.customer_id},
-    });
-
-    //@ts-ignore
-    access_token = channels[marketplace_access_token];
-
-    let requestData = JSON.stringify({
-      name: 'SP Report Exmaple',
-      startDate: start_date,
-      endDate: end_date,
-      configuration: {
-        adProduct: 'SPONSORED_PRODUCTS',
-        groupBy: ['advertiser'],
-        columns: [
-          'advertisedSku',
-          'impressions',
-          'clicks',
-          'spend',
-          'sales1d',
-          'campaignId',
-          'date',
-          'campaignName',
-          'unitsSoldSameSku1d',
-        ],
-        reportTypeId: 'spAdvertisedProduct',
-        timeUnit: 'DAILY',
-        format: 'GZIP_JSON',
-      },
-    });
-
-    let config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: amazon_base_urls[marketplace] + '/reporting/reports',
-      headers: {
-        'Content-Type': 'application/vnd.createasyncreportrequest.v3+json',
-        'Amazon-Advertising-API-ClientId': AMAZON_CLIENT_ID,
-        'Amazon-Advertising-API-Scope': profile_id,
-        Authorization: 'Bearer ' + access_token,
-      },
-      data: requestData,
-    };
-
-    console.log('creating report');
-
-    await axios
-      .request(config)
-      .then(response => {
-        reportId = response?.data.reportId;
-        console.log('got report id');
-        console.log('reportId: ', reportId);
-        createReportCount = 0;
-      })
-      .catch(async error => {
-        // console.log(config.url, ' : ', error.response);
-        console.log('report generate failed');
-        if (error.response.status == 401) {
-          console.log('unauthorized to create report');
-          await GetAccessTokenWithRefreshToken(
-            user,
-            marketplace,
-            refresh_token,
-            channelsRepository,
-          );
-          createReportCount -= 1;
-        } else {
-          console.log('Amazon: Failed to create report');
-          throw new HttpErrors.Unauthorized();
-        }
+  try {
+    while (createReportCount !== 0) {
+      const channels: Channels | null = await channelsRepository.findOne({
+        where: {customer_id: user.customer_id},
       });
+
+      //@ts-ignore
+      access_token = channels[marketplace_access_token];
+
+      let requestData = JSON.stringify({
+        name: 'SP Report Exmaple',
+        startDate: start_date,
+        endDate: end_date,
+        configuration: {
+          adProduct: 'SPONSORED_PRODUCTS',
+          groupBy: ['advertiser'],
+          columns: [
+            'advertisedSku',
+            'impressions',
+            'clicks',
+            'spend',
+            'sales1d',
+            'campaignId',
+            'date',
+            'campaignName',
+            'unitsSoldSameSku1d',
+          ],
+          reportTypeId: 'spAdvertisedProduct',
+          timeUnit: 'DAILY',
+          format: 'GZIP_JSON',
+        },
+      });
+
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: amazon_base_urls[marketplace] + '/reporting/reports',
+        headers: {
+          'Content-Type': 'application/vnd.createasyncreportrequest.v3+json',
+          'Amazon-Advertising-API-ClientId': AMAZON_CLIENT_ID,
+          'Amazon-Advertising-API-Scope': profile_id,
+          Authorization: 'Bearer ' + access_token,
+        },
+        data: requestData,
+      };
+
+      console.log('creating report');
+
+      await axios
+        .request(config)
+        .then(response => {
+          reportId = response?.data.reportId;
+          console.log('got report id');
+          console.log('reportId: ', reportId);
+          createReportCount = 0;
+        })
+        .catch(async error => {
+          // console.log(config.url, ' : ', error.response);
+          console.log('report generate failed');
+          if (error.response.status == 401) {
+            console.log('unauthorized to create report');
+            await GetAccessTokenWithRefreshToken(
+              user,
+              marketplace,
+              refresh_token,
+              channelsRepository,
+            );
+            createReportCount -= 1;
+          } else {
+            console.log('Amazon: Failed to create report');
+            createReportCount -= 1;
+            throw new HttpErrors.InternalServerError();
+          }
+        });
+    }
+  } catch (err) {
+    console.log('failed to create report');
+    return err;
   }
   return reportId;
 };

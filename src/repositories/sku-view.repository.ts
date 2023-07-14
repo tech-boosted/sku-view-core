@@ -121,14 +121,6 @@ export class SkuViewRepository extends DefaultCrudRepository<
     startDate: string,
     endDate: string,
   ): Promise<any> {
-    // console.log(tableNames);
-    // console.log(skus);
-    // console.log(customer_id);
-    // console.log(startDate);
-    // console.log(endDate);
-
-    // let query = '';
-
     const platform_respositories: {[key: string]: any} = {
       AmazonUS: this.amazonUSRepository,
       AmazonCA: this.amazonCARepository,
@@ -139,7 +131,7 @@ export class SkuViewRepository extends DefaultCrudRepository<
     };
 
     let unstructuredData: UnStructuredData[] = [];
-    let count = 0;
+
     for (let i = 0; i < tableNames.length; i++) {
       const selectedTable = tableNames[i];
 
@@ -161,11 +153,8 @@ export class SkuViewRepository extends DefaultCrudRepository<
           unstructuredData.push(element);
         }
       }
-      count += 1;
-      console.log('for loop after: ', count);
     }
 
-    // console.log(unstructuredData);
     return unstructuredData.map(
       ({id, customer_id, profileId, ...keepAttrs}) => keepAttrs,
     );

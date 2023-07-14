@@ -138,9 +138,9 @@ export class AmazonController {
 
     if (access_token !== '') {
       //@ts-ignore
-      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}${profile_id}.json.gz`;
+      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${profile_id}.json.gz`;
       //@ts-ignore
-      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}${profile_id}.json`;
+      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${profile_id}.json`;
 
       const callback = () => {
         const amazon_respositories: {[key: string]: any} = {
@@ -204,7 +204,7 @@ export class AmazonController {
           this.channelsRepository,
         );
 
-        if (reportId !== '') {
+        if (reportId) {
           await this.amazonReportIdRepository.create({
             customer_id: selectedUser.customer_id,
             report_id: reportId,
@@ -243,7 +243,10 @@ export class AmazonController {
               console.log(err);
             });
         } else {
-          return;
+          return {
+            status: false,
+            value: 'Request failed',
+          };
         }
       } catch (err) {
         console.log(err);
