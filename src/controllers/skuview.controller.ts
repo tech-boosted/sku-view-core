@@ -1,12 +1,23 @@
-import {Filter, repository} from '@loopback/repository';
-import {HttpErrors, post, requestBody} from '@loopback/rest';
-import jwt from 'jsonwebtoken';
-import {SkuView, User} from '../models';
-import {SkuData} from '../models/SkuData';
-import {SkuViewRepository, UserRepository} from '../repositories';
+import {repository} from '@loopback/repository';
+import {post, requestBody} from '@loopback/rest';
+import {
+  AmazonDatesMetaDataRepository,
+  ChannelsRepository,
+  SkuViewRepository,
+  UserRepository,
+} from '../repositories';
+import {validateToken} from '../service';
+import {getConnectedChannelsList} from '../service/getConnectedChannelsList';
 
-//@ts-ignore
-const secretKey: jwt.Secret = process.env.SECRETKEY;
+const TableNamesUsingPlatforms: {[key: string]: string} = {
+  amazon_us: 'AmazonUS',
+  amazon_ca: 'AmazonCA',
+  amazon_uk: 'AmazonUK',
+  amazon_ge: 'AmazonGE',
+  amazon_fr: 'AmazonFR',
+  amazon_it: 'AmazonIT',
+  google: 'Google',
+};
 
 export class SkuviewController {
   constructor(
@@ -14,6 +25,10 @@ export class SkuviewController {
     public skuViewRepository: SkuViewRepository,
     @repository(UserRepository)
     public userRepository: UserRepository,
+    @repository(ChannelsRepository)
+    public channelsRepository: ChannelsRepository,
+    @repository(AmazonDatesMetaDataRepository)
+    public amazonDatesMetaDataRepository: AmazonDatesMetaDataRepository,
   ) {}
 
   @post('/api/data')
@@ -27,8 +42,9 @@ export class SkuviewController {
               startDate: {type: 'string'},
               endDate: {type: 'string'},
               token: {type: 'string'},
+              skus: {type: 'array'},
             },
-            required: ['startDate', 'endDate', 'token'],
+            required: ['startDate', 'endDate', 'token', 'skus'],
           },
         },
       },
@@ -37,168 +53,260 @@ export class SkuviewController {
       startDate: string;
       endDate: string;
       token: string;
+      skus: [];
     },
   ): Promise<any[]> {
-    console.log('body: ', body);
     const token = body.token;
     const startDate = body.startDate;
     const endDate = body.endDate;
-    var result: SkuData[] = [];
-    if (!token) {
-      throw new HttpErrors.Forbidden('A token is required for authentication');
+    const requestedSkus = body.skus;
+    // var result: SkuData[] = [];
+
+    let selectedUser = await validateToken(token, this.userRepository);
+    let customer_id = selectedUser.customer_id;
+    //@ts-ignore
+    let connectedChannels: string[] = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
 
-    try {
-      const userInfo = jwt.verify(token, secretKey);
-      const user: User = await this.userRepository.findById(
-        //@ts-ignore
-        userInfo?.user?.id,
-      );
-      if (!user) {
-        throw new HttpErrors.NotFound('User not found');
-      }
-      const query: Filter<SkuView> = {
-        where: {
-          customer_id: user.customer_id,
-          platform: 'amazon_na',
-          date: {
-            between: [startDate, endDate],
+    // for (let i = 0; i < connectedChannels.length; i++) {
+    //   const channel = connectedChannels[i];
+    //   if (channel.includes('amazon')) {
+    //     let metadata = await this.amazonDatesMetaDataRepository.findOne({
+    //       where: {
+    //         customer_id: customer_id,
+    //         marketplace: channel,
+    //       },
+    //     });
+    //   }
+    // }
+
+    // try {
+    //   const query: Filter<SkuView> = {
+    //     where: {
+    //       customer_id: customer_id,
+    //       platform: 'amazon_na',
+    //       date: {
+    //         between: [startDate, endDate],
+    //       },
+    //     },
+    //   };
+    //   query.order = ['date ASC'];
+    //   let temp = await this.skuViewRepository.find(query);
+
+    //   let newData: SkuData[] = [];
+
+    //   temp.forEach(e => {
+    //     let currentSku = e.sku;
+    //     let existingSkuIndex = -1;
+    //     let currentPlatform = e.platform;
+    //     let existingPlatformIndex = -1;
+
+    //     // Check if Sku already added
+    //     for (let i = 0; i < newData.length; i++) {
+    //       let element = newData[i];
+    //       if (element.skuName === currentSku) {
+    //         existingSkuIndex = i;
+    //         return;
+    //       }
+    //     }
+
+    //     // If Sku is already added then check if platform is already added
+    //     if (existingSkuIndex !== -1) {
+    //       for (let i = 0; i < newData[existingSkuIndex].platform.length; i++) {
+    //         let element = newData[existingSkuIndex].platform[i];
+    //         if (element.name === currentPlatform) {
+    //           existingPlatformIndex = i;
+    //           return;
+    //         }
+    //       }
+    //     }
+
+    //     const propertyMapping = {
+    //       Impressions: 'impressions',
+    //       Spend: 'spend',
+    //       Clicks: 'clicks',
+    //       Orders: 'orders',
+    //       Sales: 'sales',
+    //     };
+
+    //     // If platform is added then add current data to it
+    //     if (existingPlatformIndex !== -1) {
+    //       for (
+    //         let i = 0;
+    //         i <
+    //         newData[existingSkuIndex].platform[existingPlatformIndex].data
+    //           .length;
+    //         i++
+    //       ) {
+    //         const element =
+    //           //@ts-ignore
+    //           newData[existingSkuIndex].platform[existingPlatformIndex][i].data;
+    //         for (let j = 0; j < element.length; j++) {
+    //           const obj = element[j];
+    //           //@ts-ignore
+    //           const propertyName = propertyMapping[obj.property];
+    //           if (propertyName && e.hasOwnProperty(propertyName)) {
+    //             //@ts-ignore
+    //             obj.data.push(e[propertyName]);
+    //           }
+    //         }
+    //       }
+    //     }
+
+    //     // If Sku is not added
+    //     if (existingSkuIndex === -1) {
+    //       newData.push({
+    //         skuName: currentSku,
+    //         platform: [
+    //           {
+    //             name: String(currentPlatform),
+    //             data: [
+    //               {
+    //                 property: 'Impressions',
+    //                 data: [Number(e.impressions)],
+    //               },
+    //               {
+    //                 property: 'Spend',
+    //                 data: [Number(e.spend)],
+    //               },
+    //               {
+    //                 property: 'Clicks',
+    //                 data: [Number(e.clicks)],
+    //               },
+    //               {
+    //                 property: 'Orders',
+    //                 data: [Number(e.orders)],
+    //               },
+    //               {
+    //                 property: 'Sales',
+    //                 data: [Number(e.sales)],
+    //               },
+    //             ],
+    //           },
+    //         ],
+    //       });
+    //     } else {
+    //       // If Platform is not added
+    //       if (existingPlatformIndex === -1) {
+    //         newData[existingSkuIndex].platform.push({
+    //           name: String(currentPlatform),
+    //           data: [
+    //             {
+    //               property: 'Impressions',
+    //               data: [Number(e.impressions)],
+    //             },
+    //             {
+    //               property: 'Spend',
+    //               data: [Number(e.spend)],
+    //             },
+    //             {
+    //               property: 'Clicks',
+    //               data: [Number(e.clicks)],
+    //             },
+    //             {
+    //               property: 'Orders',
+    //               data: [Number(e.orders)],
+    //             },
+    //             {
+    //               property: 'Sales',
+    //               data: [Number(e.sales)],
+    //             },
+    //           ],
+    //         });
+    //       }
+    //     }
+
+    //     result = newData;
+    //   });
+    // } catch (err) {
+    //   console.log(err);
+    // }
+    return this.skuViewRepository.findDataWithSameName(
+      connectedChannelsTableNames,
+      requestedSkus,
+      //@ts-ignore
+      customer_id,
+      startDate,
+      endDate,
+    );
+  }
+
+  @post('/api/ppc/listSkus')
+  async listAllSkus(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              token: {type: 'string'},
+            },
+            required: ['token'],
           },
         },
-      };
-      query.order = ['date ASC'];
-      let temp = await this.skuViewRepository.find(query);
+      },
+    })
+    body: {
+      token: string;
+    },
+  ): Promise<any> {
+    let selectedUser = await validateToken(body.token, this.userRepository);
+    let customer_id = selectedUser.customer_id;
+    let connectedChannels = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
 
-      let newData: SkuData[] = [];
+    let connectedChannelsTableNames: string[] = [];
 
-      temp.forEach(e => {
-        let currentSku = e.sku;
-        let existingSkuIndex = -1;
-        let currentPlatform = e.platform;
-        let existingPlatformIndex = -1;
-
-        // Check if Sku already added
-        for (let i = 0; i < newData.length; i++) {
-          let element = newData[i];
-          if (element.skuName === currentSku) {
-            existingSkuIndex = i;
-            return;
-          }
-        }
-
-        // If Sku is already added then check if platform is already added
-        if (existingSkuIndex !== -1) {
-          for (let i = 0; i < newData[existingSkuIndex].platform.length; i++) {
-            let element = newData[existingSkuIndex].platform[i];
-            if (element.name === currentPlatform) {
-              existingPlatformIndex = i;
-              return;
-            }
-          }
-        }
-
-        const propertyMapping = {
-          Impressions: 'impressions',
-          Spend: 'spend',
-          Clicks: 'clicks',
-          Orders: 'orders',
-          Sales: 'sales',
-        };
-
-        // If platform is added then add current data to it
-        if (existingPlatformIndex !== -1) {
-          for (
-            let i = 0;
-            i <
-            newData[existingSkuIndex].platform[existingPlatformIndex].data
-              .length;
-            i++
-          ) {
-            const element =
-              //@ts-ignore
-              newData[existingSkuIndex].platform[existingPlatformIndex][i].data;
-            for (let j = 0; j < element.length; j++) {
-              const obj = element[j];
-              //@ts-ignore
-              const propertyName = propertyMapping[obj.property];
-              if (propertyName && e.hasOwnProperty(propertyName)) {
-                //@ts-ignore
-                obj.data.push(e[propertyName]);
-              }
-            }
-          }
-        }
-
-        // If Sku is not added
-        if (existingSkuIndex === -1) {
-          newData.push({
-            skuName: currentSku,
-            platform: [
-              {
-                name: String(currentPlatform),
-                data: [
-                  {
-                    property: 'Impressions',
-                    data: [Number(e.impressions)],
-                  },
-                  {
-                    property: 'Spend',
-                    data: [Number(e.spend)],
-                  },
-                  {
-                    property: 'Clicks',
-                    data: [Number(e.clicks)],
-                  },
-                  {
-                    property: 'Orders',
-                    data: [Number(e.orders)],
-                  },
-                  {
-                    property: 'Sales',
-                    data: [Number(e.sales)],
-                  },
-                ],
-              },
-            ],
-          });
-        } else {
-          // If Platform is not added
-          if (existingPlatformIndex === -1) {
-            newData[existingSkuIndex].platform.push({
-              name: String(currentPlatform),
-              data: [
-                {
-                  property: 'Impressions',
-                  data: [Number(e.impressions)],
-                },
-                {
-                  property: 'Spend',
-                  data: [Number(e.spend)],
-                },
-                {
-                  property: 'Clicks',
-                  data: [Number(e.clicks)],
-                },
-                {
-                  property: 'Orders',
-                  data: [Number(e.orders)],
-                },
-                {
-                  property: 'Sales',
-                  data: [Number(e.sales)],
-                },
-              ],
-            });
-          }
-        }
-
-        result = newData;
-      });
-    } catch (err) {
-      // throw new HttpErrors.Unauthorized('Invalid Token');
-      console.log(err);
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
-    return result;
+
+    return this.skuViewRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      //@ts-ignore
+      customer_id,
+    );
+  }
+
+  @post('/api/ppc/listConnectedChannels')
+  async listAllConnectedChannels(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              token: {type: 'string'},
+            },
+            required: ['token'],
+          },
+        },
+      },
+    })
+    body: {
+      token: string;
+    },
+  ): Promise<any> {
+    let selectedUser = await validateToken(body.token, this.userRepository);
+    let customer_id = selectedUser.customer_id;
+    return getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
   }
 
   // @post('/api/skus')

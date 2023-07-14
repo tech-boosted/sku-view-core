@@ -138,9 +138,9 @@ export class AmazonController {
 
     if (access_token !== '') {
       //@ts-ignore
-      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}.json.gz`;
+      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}${profile_id}.json.gz`;
       //@ts-ignore
-      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}.json`;
+      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}${profile_id}.json`;
 
       const callback = () => {
         const amazon_respositories: {[key: string]: any} = {
@@ -292,7 +292,7 @@ export class AmazonController {
     console.log('setting start date end date');
     return this.amazonDatesMetaDataRepository.create({
       customer_id: selectedUser.customer_id,
-      platform: marketplace,
+      marketplace: marketplace,
       start_date: startDate,
       end_date: endDate,
     });

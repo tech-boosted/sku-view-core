@@ -143,15 +143,21 @@ export class AmazonOnboardController {
 
           if (updatedChannel.count === 1) {
             console.log('Successfully updated access/refresh token');
-            return response.redirect(String(CLIENT_AMAZON_SUCCESS_URL));
+            return response.redirect(
+              String(CLIENT_AMAZON_SUCCESS_URL + '/' + marketplace),
+            );
           } else {
             console.log('Failed to update access/refresh token');
-            return response.redirect(String(CLIENT_AMAZON_FAIL_URL));
+            return response.redirect(
+              String(CLIENT_AMAZON_FAIL_URL + '/' + marketplace),
+            );
           }
         })
         .catch(err => {
           console.log(err.response.data.error_description);
-          return response.redirect(String(CLIENT_AMAZON_FAIL_URL));
+          return response.redirect(
+            String(CLIENT_AMAZON_FAIL_URL + '/' + marketplace),
+          );
         });
     } catch (err) {
       console.log(err);

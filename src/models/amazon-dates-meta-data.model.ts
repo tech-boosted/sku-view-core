@@ -18,7 +18,7 @@ export class AmazonDatesMetaData extends Entity {
   @property({
     type: 'string',
   })
-  platform?: string;
+  marketplace?: string;
 
   @property({
     type: 'date',

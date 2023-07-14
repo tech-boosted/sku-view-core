@@ -42,7 +42,6 @@ export const GetAccessTokenWithRefreshToken = async (
       let new_access_token = response.data.access_token;
 
       let customer_id = selectedUser?.customer_id;
-      let result;
       try {
         let updatedChannel = await channelsRepository.updateAll(
           {
