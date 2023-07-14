@@ -37,6 +37,32 @@ const amazon_access_token_base_urls: {[key: string]: string} = {
   amazon_it: 'https://api.amazon.co.uk/auth/o2/token',
 };
 
+const amazon_marketplaces = [
+  'amazon_us',
+  'amazon_ca',
+  'amazon_uk',
+  'amazon_ge',
+  'amazon_fr',
+  'amazon_it',
+];
+
+const updateTokensOfAllAmazons = (
+  access_token: string,
+  refresh_token: string,
+) => {
+  let tokensInsertedData = {};
+  for (let i = 0; i < amazon_marketplaces.length; i++) {
+    tokensInsertedData = {
+      ...tokensInsertedData,
+      [amazon_marketplaces[i] + '_access_token']: access_token,
+      [amazon_marketplaces[i] + '_refresh_token']: refresh_token,
+      [amazon_marketplaces[i] + '_connected']: true,
+    };
+  }
+  console.log('tokensInsertedData: ', tokensInsertedData);
+  return tokensInsertedData;
+};
+
 export class AmazonOnboardController {
   constructor(
     @repository(UserRepository)
@@ -130,6 +156,19 @@ export class AmazonOnboardController {
 
           let customer_id = selectedUser?.customer_id;
 
+          // If only one refresh and one access token is required for all the amazon marketplaces
+          // let tokensInsertedData = updateTokensOfAllAmazons(
+          //   access_token,
+          //   refresh_token,
+          // );
+          // let updatedChannel = await this.channelsRepository.updateAll(
+          //   tokensInsertedData,
+          //   {
+          //     customer_id: customer_id,
+          //   },
+          // );
+
+          // If there are different access tokens and refresh tokens for all the amazon marketplaces
           let updatedChannel = await this.channelsRepository.updateAll(
             {
               [marketplace_refresh_token]: refresh_token,
@@ -154,7 +193,7 @@ export class AmazonOnboardController {
           }
         })
         .catch(err => {
-          console.log(err.response.data.error_description);
+          console.log(err.response);
           return response.redirect(
             String(CLIENT_AMAZON_FAIL_URL + '/' + marketplace),
           );
