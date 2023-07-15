@@ -1,9 +1,9 @@
 import {ApplicationConfig, SkuViewCoreApplication} from './application';
+const dotenv = require('dotenv').config();
 
 export * from './application';
 
 export async function main(options: ApplicationConfig = {}) {
-  const dotenv = require('dotenv').config();
   const app = new SkuViewCoreApplication(options);
   await app.boot();
   await app.start();
