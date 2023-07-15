@@ -4,16 +4,23 @@ require('dotenv').config();
 
 const user = process.env.MYSQL_USER;
 const password = process.env.MYSQL_PASSWORD;
+const url = process.env.MYSQL_URI;
+const host = process.env.MYSQL_HOST;
+const port = process.env.MYSQL_PORT;
+const max = process.env.MYSQL_POOL_SIZE;
 
 const config = {
   name: 'skuviewDS',
   connector: 'mysql',
-  url: process.env.MYSQL_URI,
-  host: 'acros-test-db-instance-1.cbjmo0koiyrt.us-east-2.rds.amazonaws.com',
-  port: 3306,
+  url: url,
+  host: host,
+  port: port,
   user: user,
   password: password,
   database: 'acrosDB',
+  options: {
+    max: max,
+  },
 };
 
 // Observe application's life cycle to disconnect the datasource when

@@ -1,7 +1,14 @@
 import {repository} from '@loopback/repository';
 import {post, requestBody} from '@loopback/rest';
 import {
+  AmazonCARepository,
   AmazonDatesMetaDataRepository,
+  AmazonFRRepository,
+  AmazonGERepository,
+  AmazonITRepository,
+  AmazonReportIdRepository,
+  AmazonUKRepository,
+  AmazonUSRepository,
   ChannelsRepository,
   SkuViewRepository,
   UserRepository,
@@ -29,7 +36,30 @@ export class SkuviewController {
     public channelsRepository: ChannelsRepository,
     @repository(AmazonDatesMetaDataRepository)
     public amazonDatesMetaDataRepository: AmazonDatesMetaDataRepository,
+    @repository(AmazonReportIdRepository)
+    public amazonReportIdRepository: AmazonReportIdRepository,
+    @repository(AmazonUSRepository)
+    public amazonUSRepository: AmazonUSRepository,
+    @repository(AmazonCARepository)
+    public amazonCARepository: AmazonCARepository,
+    @repository(AmazonUKRepository)
+    public amazonUKRepository: AmazonUKRepository,
+    @repository(AmazonGERepository)
+    public amazonGERepository: AmazonGERepository,
+    @repository(AmazonFRRepository)
+    public amazonFRRepository: AmazonFRRepository,
+    @repository(AmazonITRepository)
+    public amazonITRepository: AmazonITRepository,
   ) {}
+
+  amazon_respositories: {[key: string]: any} = {
+    amazon_us: this.amazonUSRepository,
+    amazon_ca: this.amazonCARepository,
+    amazon_uk: this.amazonUKRepository,
+    amazon_ge: this.amazonGERepository,
+    amazon_fr: this.amazonFRRepository,
+    amazon_it: this.amazonITRepository,
+  };
 
   @post('/api/ppc/data')
   async getData(
@@ -84,6 +114,9 @@ export class SkuviewController {
       selectedUser,
       connectedChannels,
       connectedChannelsTableNames,
+      this.channelsRepository,
+      this.amazonReportIdRepository,
+      this.amazon_respositories,
     );
 
     return this.skuViewRepository.findDataWithSameName(

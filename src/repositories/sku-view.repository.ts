@@ -69,7 +69,11 @@ export class SkuViewRepository extends DefaultCrudRepository<
 
       if (i == 0) {
         if (tableNames.length === 1) {
-          query += 'SELECT DISTINCT sku FROM ' + element;
+          query +=
+            'SELECT DISTINCT sku FROM ' +
+            element +
+            ' WHERE customer_id = ' +
+            customer_id;
         } else {
           query += 'SELECT DISTINCT sku FROM ' + element + ' WHERE';
         }

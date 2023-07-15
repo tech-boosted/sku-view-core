@@ -40,7 +40,7 @@ export const call_report_status_api = async (
   //@ts-ignore
   let access_token = channels[marketplace_access_token];
 
-  let result = {status: false, value: null};
+  let result: {status: boolean; value: any} = {status: false, value: null};
   let config = {
     method: 'get',
     maxBodyLength: Infinity,
@@ -82,7 +82,7 @@ export const call_report_status_api = async (
         );
       }
       result.status = false;
-      result.value = null;
+      result.value = 'error';
     });
   return result;
 };
@@ -114,6 +114,9 @@ export const check_report_status = (
         count = 0;
         resolve(result.value);
       } else {
+        if (result.value === 'error') {
+          reject('Failed to check report status');
+        }
         count -= 1;
         await delay(AMAZON_REPORT_CHECK_INTERVAL);
       }

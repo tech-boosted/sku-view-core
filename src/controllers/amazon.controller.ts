@@ -229,14 +229,16 @@ export class AmazonController {
                   value: 'Request failed',
                 };
               }
-              await this.amazonReportIdRepository.create({
-                customer_id: selectedUser.customer_id,
-                report_id: reportId,
-                start_date: startDate,
-                end_date: endDate,
-                platform: marketplace,
-                status: 'completed',
-              });
+              await this.amazonReportIdRepository.updateAll(
+                {
+                  status: 'completed',
+                },
+                {
+                  customer_id: selectedUser.customer_id,
+                  //@ts-ignore
+                  report_id: reportId,
+                },
+              );
               download_report(zip_url, download_path_zip, callback);
             })
             .catch(err => {
@@ -286,13 +288,16 @@ export class AmazonController {
   ): Promise<any> {
     let marketplace = requestBody.marketplace;
     let startDate = requestBody.startDate;
-    let endDate = requestBody.startDate;
+    let endDate = requestBody.endDate;
 
     let selectedUser = await validateToken(
       requestBody.token,
       this.userRepository,
     );
     console.log('setting start date end date');
+    console.log('startDate: ', startDate);
+    console.log('endDate: ', endDate);
+
     return this.amazonDatesMetaDataRepository.create({
       customer_id: selectedUser.customer_id,
       marketplace: marketplace,

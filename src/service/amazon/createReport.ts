@@ -34,7 +34,7 @@ export const create_report = async (
   channelsRepository: any,
 ) => {
   // Generate report
-  let reportId = '';
+  let reportId = null;
   let createReportCount = 2;
 
   try {
@@ -94,7 +94,6 @@ export const create_report = async (
           createReportCount = 0;
         })
         .catch(async error => {
-          // console.log(config.url, ' : ', error.response);
           console.log('report generate failed');
           if (error.response.status == 401) {
             console.log('unauthorized to create report');
@@ -107,6 +106,7 @@ export const create_report = async (
             createReportCount -= 1;
           } else {
             console.log('Amazon: Failed to create report');
+            console.log(error.response);
             createReportCount -= 1;
             throw new HttpErrors.InternalServerError();
           }
@@ -114,7 +114,6 @@ export const create_report = async (
     }
   } catch (err) {
     console.log('failed to create report');
-    return err;
   }
   return reportId;
 };
