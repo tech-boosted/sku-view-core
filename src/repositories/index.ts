@@ -9,3 +9,4 @@ export * from './amazon-it.repository';
 export * from './amazon-fr.repository';
 export * from './amazon-dates-meta-data.repository';
 export * from './amazon-report-id.repository';
+export * from './ppc.repository';

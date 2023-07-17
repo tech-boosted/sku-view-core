@@ -27,3 +27,19 @@ export interface UserInfo {
   amazon_it?: UserInfoChannels;
   google?: UserInfoChannels;
 }
+
+export interface UnStructuredData {
+  id: number;
+  customer_id: number;
+  profileId: string;
+  sku: string;
+  date: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  sales: number;
+  orders: number;
+  campaignId: number;
+  campaignName: string;
+  platform: string;
+}

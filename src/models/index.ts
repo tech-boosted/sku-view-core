@@ -9,3 +9,4 @@ export * from './user.model';
 export * from './amazon-fr.model';
 export * from './amazon-dates-meta-data.model';
 export * from './amazon-report-id.model';
+export * from './ppc.model';
