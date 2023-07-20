@@ -5,3 +5,4 @@ export * from './amazon.controller';
 export * from './amazon-onboard.controller';
 export * from './ppc.controller';
 export * from './dashboard.controller';
+export * from './google-onboard.controller';
