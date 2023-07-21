@@ -4,15 +4,22 @@ import {repository} from '@loopback/repository';
 import {post, requestBody} from '@loopback/rest';
 import {
   AmazonCARepository,
+  AmazonDatesMetaDataRepository,
   AmazonFRRepository,
   AmazonGERepository,
   AmazonITRepository,
+  AmazonReportIdRepository,
   AmazonUKRepository,
   AmazonUSRepository,
   ChannelsRepository,
   UserRepository,
 } from '../repositories';
-import {getConnectedChannelsList, validateToken} from '../service';
+import {
+  checkDateRange,
+  getConnectedChannelsList,
+  validateToken,
+} from '../service';
+import {PastThirtyDays} from '../utils/pastThirtyDays';
 
 const TableNamesUsingPlatforms: {[key: string]: string} = {
   amazon_us: 'AmazonUS',
@@ -42,7 +49,20 @@ export class DashboardController {
     public amazonFRRepository: AmazonFRRepository,
     @repository(AmazonITRepository)
     public amazonITRepository: AmazonITRepository,
+    @repository(AmazonDatesMetaDataRepository)
+    public amazonDatesMetaDataRepository: AmazonDatesMetaDataRepository,
+    @repository(AmazonReportIdRepository)
+    public amazonReportIdRepository: AmazonReportIdRepository,
   ) {}
+
+  amazon_respositories: {[key: string]: any} = {
+    amazon_us: this.amazonUSRepository,
+    amazon_ca: this.amazonCARepository,
+    amazon_uk: this.amazonUKRepository,
+    amazon_ge: this.amazonGERepository,
+    amazon_fr: this.amazonFRRepository,
+    amazon_it: this.amazonITRepository,
+  };
 
   @post('/api/dashboard/latestInfo')
   async dashboardInfo(
@@ -64,19 +84,6 @@ export class DashboardController {
     },
   ): Promise<any> {
     let token = body.token;
-    console.log('token: ', token);
-    let results = {
-      totalImpressions: 0,
-      totalSales: 0,
-      totalSpend: 0,
-      totalOrders: 0,
-      totalClicks: 0,
-      impressions: [],
-      sales: [],
-      spend: [],
-      orders: [],
-      clicks: [],
-    };
 
     let selectedUser = await validateToken(token, this.userRepository);
     let customer_id = selectedUser.customer_id;
@@ -93,6 +100,74 @@ export class DashboardController {
       connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
 
-    return results;
+    let {todayFormatted, thirtyDaysAgoFormatted} = PastThirtyDays();
+
+    await checkDateRange(
+      this.amazonDatesMetaDataRepository,
+      thirtyDaysAgoFormatted,
+      todayFormatted,
+      selectedUser,
+      connectedChannels,
+      connectedChannelsTableNames,
+      this.channelsRepository,
+      this.amazonReportIdRepository,
+      this.amazon_respositories,
+    );
+
+    // Define the custom filter
+    const customFilter = {
+      where: {
+        and: [
+          // {date: {gte: '2023-05-01'}},
+          // {date: {lte: '2023-05-30'}},
+          {date: {gte: thirtyDaysAgoFormatted}},
+          {date: {lte: todayFormatted}},
+          {customer_id: customer_id},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+      },
+    };
+
+    // Fetch data from each table
+    const amazonUSData = await this.amazonUSRepository.find(customFilter);
+    // const amazonUKData = await this.amazonUKRepository.find(customFilter);
+    const amazonCAData = await this.amazonCARepository.find(customFilter);
+
+    // Combine data and calculate aggregates
+    const combinedData = amazonUSData.concat(amazonCAData);
+
+    // Calculate the total impressions, clicks, and spend for each SKU
+    const aggregatedData = combinedData.reduce((result: any, item) => {
+      const sku = item.sku;
+      if (!result[sku]) {
+        result[sku] = {
+          sku,
+          impressions: 0,
+          clicks: 0,
+          spend: 0,
+          sales: 0,
+          orders: 0,
+        };
+      }
+
+      result[sku].impressions += item.impressions;
+      result[sku].clicks += item.clicks;
+      result[sku].spend += item.spend;
+      result[sku].sales += item.sales;
+      result[sku].orders += item.orders;
+      return result;
+    }, {});
+
+    // Convert the aggregated data object into an array
+    const finalData = Object.values(aggregatedData);
+
+    return finalData;
   }
 }

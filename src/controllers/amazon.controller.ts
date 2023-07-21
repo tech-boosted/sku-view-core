@@ -136,11 +136,18 @@ export class AmazonController {
     //@ts-ignore
     profile_id = channels[marketplace_profile_id];
 
+    if (!access_token || !refresh_token || !profile_id) {
+      return {
+        status: false,
+        value: 'Request failed, channel not added',
+      };
+    }
+
     if (access_token !== '') {
       //@ts-ignore
-      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${profile_id}.json.gz`;
+      const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${startDate}_${endDate}_${marketplace}_${profile_id}.json.gz`;
       //@ts-ignore
-      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${profile_id}.json`;
+      const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${startDate}_${endDate}_${marketplace}_${profile_id}.json`;
 
       const callback = () => {
         const amazon_respositories: {[key: string]: any} = {
