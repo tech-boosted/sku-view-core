@@ -11,7 +11,7 @@ import {InsertBulkData} from './insertBulkData';
 
 const AMAZON_FILE_DOWNLOAD_PATH = process.env.AMAZON_FILE_DOWNLOAD_PATH;
 
-export const checkDateRange = async (
+export const checkDateRangeAmazon = async (
   amazonDatesMetaDataRepository: any,
   desiredStartDate: string,
   desiredEndDate: string,
@@ -23,6 +23,29 @@ export const checkDateRange = async (
   amazon_respositories: any,
 ) => {
   let customer_id = selectedUser.customer_id;
+
+  console.log('desiredStartDate ' + desiredStartDate);
+  console.log('desiredEndDate ' + desiredEndDate);
+
+  let desiredEndDateObj = new Date(desiredEndDate);
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  today.setHours(0, 0, 0, 0);
+  yesterday.setDate(today.getDate() - 1);
+
+  desiredEndDateObj.setHours(0, 0, 0, 0);
+
+  if (desiredEndDateObj.getTime() === today.getTime()) {
+    console.log('desired end date is todays');
+    let month = yesterday.getMonth() + 1 + '';
+    if (yesterday.getMonth() + 1 < 10) {
+      month = '0' + (yesterday.getMonth() + 1);
+    }
+    let yesterdayFormattedDate =
+      yesterday.getFullYear() + '-' + month + '-' + yesterday.getDate();
+    desiredEndDate = yesterdayFormattedDate;
+  }
 
   try {
     let marketplace = '';
@@ -40,46 +63,33 @@ export const checkDateRange = async (
       let latestDate = metaData[0].end_date;
 
       console.log('checking date range of ' + marketplace);
-      console.log('oldestDate: ', oldestDate);
-      console.log('latestDate: ', latestDate);
-
-      console.log('desired range ' + desiredStartDate, desiredEndDate);
+      console.log('DB_oldestDate: ', oldestDate);
+      console.log('DB_latestDate: ', latestDate);
+      console.log('checking start date: ' + desiredStartDate);
+      console.log('checking end date: ' + desiredEndDate);
 
       let latestDateObj = new Date(latestDate);
       let desiredEndDateObj = new Date(desiredEndDate);
 
+      let newLatestDateObj = new Date(latestDate);
+
       if (desiredEndDateObj.getTime() > latestDateObj.getTime()) {
         console.log('latestDateObj: ', latestDateObj);
-        latestDateObj.setDate(latestDateObj.getDate() + 1);
-        let month = latestDateObj.getMonth() + 1 + '';
-        let date = latestDateObj.getDate() + '';
-        if (latestDateObj.getDate() < 10) {
-          date = '0' + latestDateObj.getDate();
+        console.log('newLatestDateObj: ', newLatestDateObj);
+        newLatestDateObj.setDate(latestDateObj.getDate() + 1);
+        console.log('date updated latestDateObj: ', newLatestDateObj);
+        let month = newLatestDateObj.getMonth() + 1 + '';
+        let date = newLatestDateObj.getDate() + '';
+        console.log('date: ', date);
+        if (newLatestDateObj.getDate() < 10) {
+          date = '0' + newLatestDateObj.getDate();
         }
-        if (latestDateObj.getMonth() + 1 < 10) {
-          month = '0' + (latestDateObj.getMonth() + 1);
+        if (newLatestDateObj.getMonth() + 1 < 10) {
+          month = '0' + (newLatestDateObj.getMonth() + 1);
         }
         let updatedLatestDate =
-          latestDateObj.getFullYear() + '-' + month + '-' + date;
-
-        console.log('desired end date is greater than latest date');
-        const today = new Date();
-        const yesterday = new Date(today);
-        today.setHours(0, 0, 0, 0);
-        yesterday.setDate(today.getDate() - 1);
-
-        desiredEndDateObj.setHours(0, 0, 0, 0);
-
-        if (desiredEndDateObj.getTime() === today.getTime()) {
-          console.log('desired end date is todays');
-          let month = today.getMonth() + 1 + '';
-          if (today.getMonth() + 1 < 10) {
-            month = '0' + (today.getMonth() + 1);
-          }
-          let yesterdayFormattedDate =
-            today.getFullYear() + '-' + month + '-' + today.getDate();
-          desiredEndDate = yesterdayFormattedDate;
-        }
+          newLatestDateObj.getFullYear() + '-' + month + '-' + date;
+        console.log('updatedLatestDate: ', updatedLatestDate);
 
         await amazonDatesMetaDataRepository.updateAll(
           {
@@ -193,14 +203,16 @@ export const checkDateRange = async (
                     value: 'Request failed',
                   };
                 }
-                await amazonReportIdRepository.create({
-                  customer_id: selectedUser.customer_id,
-                  report_id: reportId,
-                  start_date: updatedLatestDate,
-                  end_date: desiredEndDate,
-                  platform: marketplace,
-                  status: 'completed',
-                });
+                await amazonReportIdRepository.updateAll(
+                  {
+                    status: 'completed',
+                  },
+                  {
+                    customer_id: selectedUser.customer_id,
+                    //@ts-ignore
+                    report_id: reportId,
+                  },
+                );
                 download_report(zip_url, download_path_zip, callback);
               })
               .catch(err => {

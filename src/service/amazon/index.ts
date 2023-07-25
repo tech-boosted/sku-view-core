@@ -1,4 +1,4 @@
-export * from './checkDateRange';
+export * from './checkDateRangeAmazon';
 export * from './checkReportStatus';
 export * from './downloadReport';
 export * from './getAccessTokenWithRefreshToken';

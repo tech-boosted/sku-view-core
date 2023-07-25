@@ -12,13 +12,15 @@ import {
   AmazonUKRepository,
   AmazonUSRepository,
   ChannelsRepository,
+  PpcRepository,
   UserRepository,
 } from '../repositories';
 import {
-  checkDateRange,
+  checkDateRangeAmazon,
   getConnectedChannelsList,
   validateToken,
 } from '../service';
+import {CombineSameDateData} from '../service/amazon/combineSameDateData';
 import {PastThirtyDays} from '../utils/pastThirtyDays';
 
 const TableNamesUsingPlatforms: {[key: string]: string} = {
@@ -53,6 +55,8 @@ export class DashboardController {
     public amazonDatesMetaDataRepository: AmazonDatesMetaDataRepository,
     @repository(AmazonReportIdRepository)
     public amazonReportIdRepository: AmazonReportIdRepository,
+    @repository(PpcRepository)
+    public ppcRepository: PpcRepository,
   ) {}
 
   amazon_respositories: {[key: string]: any} = {
@@ -100,12 +104,12 @@ export class DashboardController {
       connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
 
-    let {todayFormatted, thirtyDaysAgoFormatted} = PastThirtyDays();
+    let {yesterdayFormatted, thirtyDaysAgoFormatted} = PastThirtyDays();
 
-    await checkDateRange(
+    await checkDateRangeAmazon(
       this.amazonDatesMetaDataRepository,
       thirtyDaysAgoFormatted,
-      todayFormatted,
+      yesterdayFormatted,
       selectedUser,
       connectedChannels,
       connectedChannelsTableNames,
@@ -114,15 +118,19 @@ export class DashboardController {
       this.amazon_respositories,
     );
 
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
     // Define the custom filter
     const customFilter = {
       where: {
         and: [
-          // {date: {gte: '2023-05-01'}},
-          // {date: {lte: '2023-05-30'}},
           {date: {gte: thirtyDaysAgoFormatted}},
-          {date: {lte: todayFormatted}},
+          {date: {lte: yesterdayFormatted}},
           {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
         ],
       },
       fields: {
@@ -132,42 +140,36 @@ export class DashboardController {
         spend: true,
         sales: true,
         orders: true,
+        date: true,
       },
+      order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
     };
+
+    console.log('LatestInfo from: ', thirtyDaysAgoFormatted);
+    console.log('LatestInfo to: ', yesterdayFormatted);
 
     // Fetch data from each table
     const amazonUSData = await this.amazonUSRepository.find(customFilter);
-    // const amazonUKData = await this.amazonUKRepository.find(customFilter);
+    const amazonUKData = await this.amazonUKRepository.find(customFilter);
     const amazonCAData = await this.amazonCARepository.find(customFilter);
+    const amazonGEData = await this.amazonGERepository.find(customFilter);
+    const amazonFRData = await this.amazonFRRepository.find(customFilter);
+    const amazonITData = await this.amazonITRepository.find(customFilter);
 
-    // Combine data and calculate aggregates
-    const combinedData = amazonUSData.concat(amazonCAData);
+    const UScombinedSameDateData = await CombineSameDateData(amazonUSData);
+    const UKcombinedSameDateData = await CombineSameDateData(amazonUKData);
+    const CAcombinedSameDateData = await CombineSameDateData(amazonCAData);
+    const GEcombinedSameDateData = await CombineSameDateData(amazonGEData);
+    const FRcombinedSameDateData = await CombineSameDateData(amazonFRData);
+    const ITcombinedSameDateData = await CombineSameDateData(amazonITData);
 
-    // Calculate the total impressions, clicks, and spend for each SKU
-    const aggregatedData = combinedData.reduce((result: any, item) => {
-      const sku = item.sku;
-      if (!result[sku]) {
-        result[sku] = {
-          sku,
-          impressions: 0,
-          clicks: 0,
-          spend: 0,
-          sales: 0,
-          orders: 0,
-        };
-      }
-
-      result[sku].impressions += item.impressions;
-      result[sku].clicks += item.clicks;
-      result[sku].spend += item.spend;
-      result[sku].sales += item.sales;
-      result[sku].orders += item.orders;
-      return result;
-    }, {});
-
-    // Convert the aggregated data object into an array
-    const finalData = Object.values(aggregatedData);
-
-    return finalData;
+    return {
+      amazonUSData: UScombinedSameDateData,
+      amazonCAData: CAcombinedSameDateData,
+      amazonUKData: UKcombinedSameDateData,
+      amazonGEData: GEcombinedSameDateData,
+      amazonFRData: FRcombinedSameDateData,
+      amazonITData: ITcombinedSameDateData,
+    };
   }
 }

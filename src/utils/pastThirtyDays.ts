@@ -9,14 +9,20 @@ export const PastThirtyDays = () => {
   const thirtyDaysAgoDay = String(currentDate.getDate()).padStart(2, '0');
   const thirtyDaysAgoFormatted = `${thirtyDaysAgoYear}-${thirtyDaysAgoMonth}-${thirtyDaysAgoDay}`;
 
-  const today = new Date();
-  const todayYear = today.getFullYear();
-  const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
-  const todayDay = String(today.getDate()).padStart(2, '0');
-  const todayFormatted = `${todayYear}-${todayMonth}-${todayDay}`;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const yesterdayYear = yesterday.getFullYear();
+  const yesterdayMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const yesterdayDay = String(yesterday.getDate()).padStart(2, '0');
+  const yesterdayFormatted = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
 
   return {
-    todayFormatted: todayFormatted,
+    yesterdayFormatted: yesterdayFormatted,
     thirtyDaysAgoFormatted: thirtyDaysAgoFormatted,
   };
+  // return {
+  //   yesterdayFormatted: '2023-06-15',
+  //   thirtyDaysAgoFormatted: '2023-06-01',
+  // };
 };

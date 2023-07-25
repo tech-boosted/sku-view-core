@@ -14,7 +14,7 @@ import {
   UserRepository,
 } from '../repositories';
 import {
-  checkDateRange,
+  checkDateRangeAmazon,
   getConnectedChannelsList,
   validateToken,
 } from '../service';
@@ -110,7 +110,7 @@ export class PPCController {
       connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
 
-    await checkDateRange(
+    await checkDateRangeAmazon(
       this.amazonDatesMetaDataRepository,
       startDate,
       endDate,
