@@ -21,7 +21,7 @@ export class CatalogController {
     public dashboardRepository: DashboardRepository,
   ) {}
 
-  @post('/catalog')
+  @post('/api/catalog')
   async getCatalogs(
     @requestBody({
       content: {

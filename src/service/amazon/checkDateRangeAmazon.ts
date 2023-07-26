@@ -71,24 +71,21 @@ export const checkDateRangeAmazon = async (
       let latestDateObj = new Date(latestDate);
       let desiredEndDateObj = new Date(desiredEndDate);
 
-      let newLatestDateObj = new Date(latestDate);
-
       if (desiredEndDateObj.getTime() > latestDateObj.getTime()) {
         console.log('latestDateObj: ', latestDateObj);
-        console.log('newLatestDateObj: ', newLatestDateObj);
-        newLatestDateObj.setDate(latestDateObj.getDate() + 1);
-        console.log('date updated latestDateObj: ', newLatestDateObj);
-        let month = newLatestDateObj.getMonth() + 1 + '';
-        let date = newLatestDateObj.getDate() + '';
+        latestDateObj.setDate(latestDateObj.getDate() + 1);
+        console.log('date updated latestDateObj: ', latestDateObj);
+        let month = latestDateObj.getMonth() + 1 + '';
+        let date = latestDateObj.getDate() + '';
         console.log('date: ', date);
-        if (newLatestDateObj.getDate() < 10) {
-          date = '0' + newLatestDateObj.getDate();
+        if (latestDateObj.getDate() < 10) {
+          date = '0' + latestDateObj.getDate();
         }
-        if (newLatestDateObj.getMonth() + 1 < 10) {
-          month = '0' + (newLatestDateObj.getMonth() + 1);
+        if (latestDateObj.getMonth() + 1 < 10) {
+          month = '0' + (latestDateObj.getMonth() + 1);
         }
         let updatedLatestDate =
-          newLatestDateObj.getFullYear() + '-' + month + '-' + date;
+          latestDateObj.getFullYear() + '-' + month + '-' + date;
         console.log('updatedLatestDate: ', updatedLatestDate);
 
         await amazonDatesMetaDataRepository.updateAll(
@@ -117,9 +114,9 @@ export const checkDateRangeAmazon = async (
           let profile_id = channels[marketplace_profile_id];
 
           //@ts-ignore
-          const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${profile_id}.json.gz`;
+          const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${startDate}_${endDate}_${marketplace}_${profile_id}.json.gz`;
           //@ts-ignore
-          const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${profile_id}.json`;
+          const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${startDate}_${endDate}_${marketplace}_${profile_id}.json`;
 
           const callback = () => {
             console.log('Download complete');
