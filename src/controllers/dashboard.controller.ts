@@ -21,17 +21,8 @@ import {
   validateToken,
 } from '../service';
 import {CombineSameDateData} from '../service/amazon/combineSameDateData';
+import {TableNamesUsingPlatforms} from '../service/constants';
 import {PastThirtyDays} from '../utils/pastThirtyDays';
-
-const TableNamesUsingPlatforms: {[key: string]: string} = {
-  amazon_us: 'AmazonUS',
-  amazon_ca: 'AmazonCA',
-  amazon_uk: 'AmazonUK',
-  amazon_ge: 'AmazonGE',
-  amazon_fr: 'AmazonFR',
-  amazon_it: 'AmazonIT',
-  google: 'Google',
-};
 
 export class DashboardController {
   constructor(
