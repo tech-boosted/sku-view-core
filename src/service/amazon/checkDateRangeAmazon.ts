@@ -75,17 +75,19 @@ export const checkDateRangeAmazon = async (
         console.log('latestDateObj: ', latestDateObj);
         latestDateObj.setDate(latestDateObj.getDate() + 1);
         console.log('date updated latestDateObj: ', latestDateObj);
-        let month = latestDateObj.getMonth() + 1 + '';
-        let date = latestDateObj.getDate() + '';
+        let newStartDate = new Date(latestDateObj);
+        console.log('date updated newStartDate: ', newStartDate);
+        let month = newStartDate.getMonth() + 1 + '';
+        let date = newStartDate.getDate() + '';
         console.log('date: ', date);
-        if (latestDateObj.getDate() < 10) {
-          date = '0' + latestDateObj.getDate();
+        if (newStartDate.getDate() < 10) {
+          date = '0' + newStartDate.getDate();
         }
-        if (latestDateObj.getMonth() + 1 < 10) {
-          month = '0' + (latestDateObj.getMonth() + 1);
+        if (newStartDate.getMonth() + 1 < 10) {
+          month = '0' + (newStartDate.getMonth() + 1);
         }
         let updatedLatestDate =
-          latestDateObj.getFullYear() + '-' + month + '-' + date;
+          newStartDate.getFullYear() + '-' + month + '-' + date;
         console.log('updatedLatestDate: ', updatedLatestDate);
 
         await amazonDatesMetaDataRepository.updateAll(
@@ -114,9 +116,9 @@ export const checkDateRangeAmazon = async (
           let profile_id = channels[marketplace_profile_id];
 
           //@ts-ignore
-          const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${startDate}_${endDate}_${marketplace}_${profile_id}.json.gz`;
+          const download_path_zip = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${updatedLatestDate}_${desiredEndDate}_${marketplace}_${profile_id}.json.gz`;
           //@ts-ignore
-          const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${startDate}_${endDate}_${marketplace}_${profile_id}.json`;
+          const download_path_json = `${AMAZON_FILE_DOWNLOAD_PATH}/${selectedUser?.customer_id}_${updatedLatestDate}_${desiredEndDate}_${marketplace}_${profile_id}.json`;
 
           const callback = () => {
             console.log('Download complete');
