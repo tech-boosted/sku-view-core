@@ -40,22 +40,32 @@ export class CatalogController {
       token: string;
     },
   ): Promise<any> {
+    console.log('catalog - validating user');
+
     let selectedUser = await validateToken(body.token, this.userRepository);
     let customer_id = selectedUser.customer_id;
+
+    console.log('catalog - getting all skus');
 
     let allSkus = await this.dashboardRepository.getSkusAcrosAllPlatforms(
       //@ts-ignore
       customer_id,
     );
 
+    console.log('catalog - adding missing skus');
+
     //@ts-ignore
     await this.catalogRepository.addMissingSkus(allSkus, customer_id);
+
+    console.log('catalog - getting all catalogs');
 
     let result = await this.catalogRepository.find({
       where: {
         customer_id: customer_id,
       },
     });
+
+    console.log('catalog - creating response');
 
     return result.map(({customer_id, ...rest}) => rest);
   }
