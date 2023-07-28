@@ -16,13 +16,14 @@ import {
   UserRepository,
 } from '../repositories';
 import {
+  CombineSameDateData,
+  CombineSameSkuDateData,
   checkDateRangeAmazon,
   getConnectedChannelsList,
   validateToken,
 } from '../service';
-import {CombineSameDateData} from '../service/amazon/combineSameDateData';
 import {TableNamesUsingPlatforms} from '../service/constants';
-import {PastThirtyDays} from '../utils/pastThirtyDays';
+import {PastThirtyDays, getStartDateAndEndDate} from '../utils';
 
 export class DashboardController {
   constructor(
@@ -147,12 +148,12 @@ export class DashboardController {
     const amazonFRData = await this.amazonFRRepository.find(customFilter);
     const amazonITData = await this.amazonITRepository.find(customFilter);
 
-    const UScombinedSameDateData = await CombineSameDateData(amazonUSData);
-    const UKcombinedSameDateData = await CombineSameDateData(amazonUKData);
-    const CAcombinedSameDateData = await CombineSameDateData(amazonCAData);
-    const GEcombinedSameDateData = await CombineSameDateData(amazonGEData);
-    const FRcombinedSameDateData = await CombineSameDateData(amazonFRData);
-    const ITcombinedSameDateData = await CombineSameDateData(amazonITData);
+    const UScombinedSameDateData = await CombineSameSkuDateData(amazonUSData);
+    const UKcombinedSameDateData = await CombineSameSkuDateData(amazonUKData);
+    const CAcombinedSameDateData = await CombineSameSkuDateData(amazonCAData);
+    const GEcombinedSameDateData = await CombineSameSkuDateData(amazonGEData);
+    const FRcombinedSameDateData = await CombineSameSkuDateData(amazonFRData);
+    const ITcombinedSameDateData = await CombineSameSkuDateData(amazonITData);
 
     return {
       amazonUSData: UScombinedSameDateData,
@@ -162,5 +163,102 @@ export class DashboardController {
       amazonFRData: FRcombinedSameDateData,
       amazonITData: ITcombinedSameDateData,
     };
+  }
+
+  @post('/api/dashboard/performanceTrend')
+  async dashboardTrend(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              month: {type: 'string'},
+              year: {type: 'number'},
+              token: {type: 'string'},
+            },
+            required: ['token', 'month', 'year'],
+          },
+        },
+      },
+    })
+    body: {
+      month: string;
+      year: number;
+      token: string;
+    },
+  ) {
+    let token = body.token;
+    let month = body.month;
+    let year = body.year;
+
+    let selectedUser = await validateToken(token, this.userRepository);
+    let customer_id = selectedUser.customer_id;
+    //@ts-ignore
+    let connectedChannels: string[] = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    console.log('month: ', month);
+    console.log('year: ', year);
+
+    const result = getStartDateAndEndDate(month, year);
+
+    const desiredStartDate = result.startDate;
+    const desiredEndDate = result.endDate;
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    // Define the custom filter
+    const customFilter = {
+      where: {
+        and: [
+          {date: {gte: desiredStartDate}},
+          {date: {lte: desiredEndDate}},
+          {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+        date: true,
+      },
+      order: ['date ASC'],
+    };
+
+    // Fetch data from each table
+    const amazonUSData = await this.amazonUSRepository.find(customFilter);
+    const amazonUKData = await this.amazonUKRepository.find(customFilter);
+    const amazonCAData = await this.amazonCARepository.find(customFilter);
+    const amazonGEData = await this.amazonGERepository.find(customFilter);
+    const amazonFRData = await this.amazonFRRepository.find(customFilter);
+    const amazonITData = await this.amazonITRepository.find(customFilter);
+
+    const combinedDateData = CombineSameDateData([
+      amazonUSData,
+      amazonUKData,
+      amazonCAData,
+      amazonGEData,
+      amazonFRData,
+      amazonITData,
+    ]);
+
+    return combinedDateData;
   }
 }

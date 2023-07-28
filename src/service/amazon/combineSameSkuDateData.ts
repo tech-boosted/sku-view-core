@@ -1,4 +1,4 @@
-export interface CombineSameDateDataProps {
+export interface CombineSameSkuDateDataProps {
   sku: string;
   date: string;
   impressions: string;
@@ -8,7 +8,8 @@ export interface CombineSameDateDataProps {
   orders: string;
 }
 
-export const CombineSameDateData = async (data: any[]) => {
+// Gives data for each Sku per date. Dates and Sku are the basic entity here. All campaigns are combined.
+export const CombineSameSkuDateData = async (data: any[]) => {
   // Create a Map to store the combined data
   const combinedData = new Map();
 
