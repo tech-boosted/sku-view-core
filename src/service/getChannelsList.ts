@@ -15,6 +15,7 @@ export const getChannelsList = async (channels: Channels) => {
         userChannels[channel] = {
           connected: false,
           profile_id: '',
+          profile_name: '',
         };
       }
 
@@ -33,11 +34,31 @@ export const getChannelsList = async (channels: Channels) => {
         userChannels[channel] = {
           connected: false,
           profile_id: '',
+          profile_name: '',
         };
       }
 
       //@ts-ignore
       userChannels[channel].profile_id = profileId;
+    }
+
+    if (key.includes('_profile_name')) {
+      let channel = key.slice(0, key.length - 13);
+      //@ts-ignore
+      let profileName = channels[key];
+
+      //@ts-ignore
+      if (!userChannels[channel]) {
+        //@ts-ignore
+        userChannels[channel] = {
+          connected: false,
+          profile_id: '',
+          profile_name: '',
+        };
+      }
+
+      //@ts-ignore
+      userChannels[channel].profile_name = profileName;
     }
   }
 

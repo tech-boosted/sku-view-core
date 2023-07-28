@@ -38,6 +38,11 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+  })
+  amazon_us_profile_name?: string;
+
+  @property({
+    type: 'string',
     default: '',
   })
   amazon_uk_refresh_token?: string;
@@ -58,6 +63,11 @@ export class Channels extends Entity {
     type: 'string',
   })
   amazon_uk_profile_id?: string;
+
+  @property({
+    type: 'string',
+  })
+  amazon_uk_profile_name?: string;
 
   @property({
     type: 'string',
@@ -84,6 +94,11 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+  })
+  amazon_ca_profile_name?: string;
+
+  @property({
+    type: 'string',
     default: '',
   })
   amazon_ge_refresh_token?: string;
@@ -104,6 +119,11 @@ export class Channels extends Entity {
     type: 'string',
   })
   amazon_ge_profile_id?: string;
+
+  @property({
+    type: 'string',
+  })
+  amazon_ge_profile_name?: string;
 
   @property({
     type: 'string',
@@ -130,6 +150,11 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+  })
+  amazon_fr_profile_name?: string;
+
+  @property({
+    type: 'string',
     default: '',
   })
   amazon_it_refresh_token?: string;
@@ -153,6 +178,11 @@ export class Channels extends Entity {
 
   @property({
     type: 'string',
+  })
+  amazon_it_profile_name?: string;
+
+  @property({
+    type: 'string',
     default: '',
   })
   google_refresh_token?: string;
@@ -173,6 +203,11 @@ export class Channels extends Entity {
     type: 'string',
   })
   google_profile_id?: string;
+
+  @property({
+    type: 'string',
+  })
+  google_profile_name?: string;
 
   constructor(data?: Partial<Channels>) {
     super(data);
