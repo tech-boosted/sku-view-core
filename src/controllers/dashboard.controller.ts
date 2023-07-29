@@ -278,7 +278,7 @@ export class DashboardController {
     return [];
   }
 
-  @post('/api/historicalPerformance')
+  @post('/api/dashboard/historicalPerformance')
   async dashboardHistoricalData(
     @requestBody({
       content: {
