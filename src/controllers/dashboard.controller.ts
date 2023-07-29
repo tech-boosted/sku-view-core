@@ -277,4 +277,126 @@ export class DashboardController {
     }
     return [];
   }
+
+  @post('/api/historicalPerformance')
+  async dashboardHistoricalData(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              startMonth: {type: 'string'},
+              startYear: {type: 'number'},
+              endMonth: {type: 'string'},
+              endYear: {type: 'number'},
+              token: {type: 'string'},
+            },
+            required: [
+              'token',
+              'startMonth',
+              'startYear',
+              'endMonth',
+              'endYear',
+            ],
+          },
+        },
+      },
+    })
+    body: {
+      startMonth: string;
+      startYear: number;
+      endMonth: string;
+      endYear: number;
+      token: string;
+    },
+  ): Promise<any> {
+    let token = body.token;
+
+    let startMonth = body.startMonth;
+    let startYear = body.startYear;
+    let endMonth = body.endMonth;
+    let endYear = body.endYear;
+
+    let selectedUser = await validateToken(token, this.userRepository);
+    let customer_id = selectedUser.customer_id;
+    //@ts-ignore
+    let connectedChannels: string[] = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
+
+    if (connectedChannels.length === 0) {
+      return [];
+    }
+
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    console.log('startMonth: ', startMonth, startYear);
+    console.log('endMonth: ', endMonth, endYear);
+
+    const startResult = getStartDateAndEndDate(startMonth, startYear);
+    const endResult = getStartDateAndEndDate(endMonth, endYear);
+
+    const desiredStartDate = startResult.startDate;
+    const desiredEndDate = endResult.endDate;
+
+    console.log('desiredStartDate: ', desiredStartDate);
+    console.log('desiredEndDate: ', desiredEndDate);
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    if (specificSKUs?.length === 0) {
+      return [];
+    }
+
+    const customFilter = {
+      where: {
+        and: [
+          {date: {gte: desiredStartDate}},
+          {date: {lte: desiredEndDate}},
+          {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+        date: true,
+      },
+      order: ['date ASC'],
+    };
+
+    // Fetch data from each table
+    const amazonUSData = await this.amazonUSRepository.find(customFilter);
+    const amazonUKData = await this.amazonUKRepository.find(customFilter);
+    const amazonCAData = await this.amazonCARepository.find(customFilter);
+    const amazonGEData = await this.amazonGERepository.find(customFilter);
+    const amazonFRData = await this.amazonFRRepository.find(customFilter);
+    const amazonITData = await this.amazonITRepository.find(customFilter);
+
+    const combinedDateData = CombineSameDateData([
+      amazonUSData,
+      amazonUKData,
+      amazonCAData,
+      amazonGEData,
+      amazonFRData,
+      amazonITData,
+    ]);
+
+    return combinedDateData;
+  }
 }
