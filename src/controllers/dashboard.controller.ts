@@ -90,90 +90,93 @@ export class DashboardController {
       customer_id,
     );
 
-    if (connectedChannels.length !== 0) {
-      let connectedChannelsTableNames: string[] = [];
-
-      for (let i = 0; i < connectedChannels.length; i++) {
-        const element = connectedChannels[i];
-        connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
-      }
-
-      let {yesterdayFormatted, thirtyDaysAgoFormatted} = PastThirtyDays();
-
-      await checkDateRangeAmazon(
-        this.amazonDatesMetaDataRepository,
-        thirtyDaysAgoFormatted,
-        yesterdayFormatted,
-        selectedUser,
-        connectedChannels,
-        connectedChannelsTableNames,
-        this.channelsRepository,
-        this.amazonReportIdRepository,
-        this.amazon_respositories,
-      );
-
-      const specificSKUs = await this.ppcRepository.findAllWithSameName(
-        connectedChannelsTableNames,
-        String(customer_id),
-      );
-
-      // Define the custom filter
-      const customFilter = {
-        where: {
-          and: [
-            {date: {gte: thirtyDaysAgoFormatted}},
-            {date: {lte: yesterdayFormatted}},
-            {customer_id: customer_id},
-            {sku: {inq: specificSKUs}},
-          ],
-        },
-        fields: {
-          sku: true,
-          impressions: true,
-          clicks: true,
-          spend: true,
-          sales: true,
-          orders: true,
-          date: true,
-        },
-        order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
-      };
-
-      console.log('LatestInfo from: ', thirtyDaysAgoFormatted);
-      console.log('LatestInfo to: ', yesterdayFormatted);
-
-      // Fetch data from each table
-      const amazonUSData = await this.amazonUSRepository.find(customFilter);
-      const amazonUKData = await this.amazonUKRepository.find(customFilter);
-      const amazonCAData = await this.amazonCARepository.find(customFilter);
-      const amazonGEData = await this.amazonGERepository.find(customFilter);
-      const amazonFRData = await this.amazonFRRepository.find(customFilter);
-      const amazonITData = await this.amazonITRepository.find(customFilter);
-
-      const UScombinedSameDateData = await CombineSameSkuDateData(amazonUSData);
-      const UKcombinedSameDateData = await CombineSameSkuDateData(amazonUKData);
-      const CAcombinedSameDateData = await CombineSameSkuDateData(amazonCAData);
-      const GEcombinedSameDateData = await CombineSameSkuDateData(amazonGEData);
-      const FRcombinedSameDateData = await CombineSameSkuDateData(amazonFRData);
-      const ITcombinedSameDateData = await CombineSameSkuDateData(amazonITData);
-
+    if (connectedChannels.length === 0) {
       return {
-        amazonUSData: UScombinedSameDateData,
-        amazonCAData: CAcombinedSameDateData,
-        amazonUKData: UKcombinedSameDateData,
-        amazonGEData: GEcombinedSameDateData,
-        amazonFRData: FRcombinedSameDateData,
-        amazonITData: ITcombinedSameDateData,
+        amazonUSData: [],
+        amazonCAData: [],
+        amazonUKData: [],
+        amazonGEData: [],
+        amazonFRData: [],
+        amazonITData: [],
       };
     }
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    let {yesterdayFormatted, thirtyDaysAgoFormatted} = PastThirtyDays();
+
+    await checkDateRangeAmazon(
+      this.amazonDatesMetaDataRepository,
+      thirtyDaysAgoFormatted,
+      yesterdayFormatted,
+      selectedUser,
+      connectedChannels,
+      connectedChannelsTableNames,
+      this.channelsRepository,
+      this.amazonReportIdRepository,
+      this.amazon_respositories,
+    );
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    if (specificSKUs?.length === 0) {
+      return [];
+    }
+
+    // Define the custom filter
+    const customFilter = {
+      where: {
+        and: [
+          {date: {gte: thirtyDaysAgoFormatted}},
+          {date: {lte: yesterdayFormatted}},
+          {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+        date: true,
+      },
+      order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
+    };
+
+    console.log('LatestInfo from: ', thirtyDaysAgoFormatted);
+    console.log('LatestInfo to: ', yesterdayFormatted);
+
+    // Fetch data from each table
+    const amazonUSData = await this.amazonUSRepository.find(customFilter);
+    const amazonUKData = await this.amazonUKRepository.find(customFilter);
+    const amazonCAData = await this.amazonCARepository.find(customFilter);
+    const amazonGEData = await this.amazonGERepository.find(customFilter);
+    const amazonFRData = await this.amazonFRRepository.find(customFilter);
+    const amazonITData = await this.amazonITRepository.find(customFilter);
+
+    const UScombinedSameDateData = await CombineSameSkuDateData(amazonUSData);
+    const UKcombinedSameDateData = await CombineSameSkuDateData(amazonUKData);
+    const CAcombinedSameDateData = await CombineSameSkuDateData(amazonCAData);
+    const GEcombinedSameDateData = await CombineSameSkuDateData(amazonGEData);
+    const FRcombinedSameDateData = await CombineSameSkuDateData(amazonFRData);
+    const ITcombinedSameDateData = await CombineSameSkuDateData(amazonITData);
 
     return {
-      amazonUSData: [],
-      amazonCAData: [],
-      amazonUKData: [],
-      amazonGEData: [],
-      amazonFRData: [],
-      amazonITData: [],
+      amazonUSData: UScombinedSameDateData,
+      amazonCAData: CAcombinedSameDateData,
+      amazonUKData: UKcombinedSameDateData,
+      amazonGEData: GEcombinedSameDateData,
+      amazonFRData: FRcombinedSameDateData,
+      amazonITData: ITcombinedSameDateData,
     };
   }
 
@@ -213,69 +216,89 @@ export class DashboardController {
       customer_id,
     );
 
-    if (connectedChannels.length !== 0) {
-      let connectedChannelsTableNames: string[] = [];
-
-      for (let i = 0; i < connectedChannels.length; i++) {
-        const element = connectedChannels[i];
-        connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
-      }
-
-      console.log('month: ', month);
-      console.log('year: ', year);
-
-      const result = getStartDateAndEndDate(month, year);
-
-      const desiredStartDate = result.startDate;
-      const desiredEndDate = result.endDate;
-
-      const specificSKUs = await this.ppcRepository.findAllWithSameName(
-        connectedChannelsTableNames,
-        String(customer_id),
-      );
-
-      // Define the custom filter
-      const customFilter = {
-        where: {
-          and: [
-            {date: {gte: desiredStartDate}},
-            {date: {lte: desiredEndDate}},
-            {customer_id: customer_id},
-            {sku: {inq: specificSKUs}},
-          ],
-        },
-        fields: {
-          sku: true,
-          impressions: true,
-          clicks: true,
-          spend: true,
-          sales: true,
-          orders: true,
-          date: true,
-        },
-        order: ['date ASC'],
-      };
-
-      // Fetch data from each table
-      const amazonUSData = await this.amazonUSRepository.find(customFilter);
-      const amazonUKData = await this.amazonUKRepository.find(customFilter);
-      const amazonCAData = await this.amazonCARepository.find(customFilter);
-      const amazonGEData = await this.amazonGERepository.find(customFilter);
-      const amazonFRData = await this.amazonFRRepository.find(customFilter);
-      const amazonITData = await this.amazonITRepository.find(customFilter);
-
-      const combinedDateData = CombineSameDateData([
-        amazonUSData,
-        amazonUKData,
-        amazonCAData,
-        amazonGEData,
-        amazonFRData,
-        amazonITData,
-      ]);
-
-      return combinedDateData;
+    if (connectedChannels.length === 0) {
+      return [];
     }
-    return [];
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    console.log('month: ', month);
+    console.log('year: ', year);
+
+    const result = getStartDateAndEndDate(month, year);
+
+    const desiredStartDate = result.startDate;
+    const desiredEndDate = result.endDate;
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    if (specificSKUs?.length === 0) {
+      return [];
+    }
+
+    // Define the custom filter
+    const customFilter = {
+      where: {
+        and: [
+          {date: {gte: desiredStartDate}},
+          {date: {lte: desiredEndDate}},
+          {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+        date: true,
+      },
+      order: ['date ASC'],
+    };
+
+    // Fetch data from each table
+    const amazonUSData = await this.amazonUSRepository.find(customFilter);
+    const amazonUKData = await this.amazonUKRepository.find(customFilter);
+    const amazonCAData = await this.amazonCARepository.find(customFilter);
+    const amazonGEData = await this.amazonGERepository.find(customFilter);
+    const amazonFRData = await this.amazonFRRepository.find(customFilter);
+    const amazonITData = await this.amazonITRepository.find(customFilter);
+
+    // const combinedDateData = CombineSameDateData([
+    //   amazonUSData,
+    //   amazonUKData,
+    //   amazonCAData,
+    //   amazonGEData,
+    //   amazonFRData,
+    //   amazonITData,
+    // ]);
+
+    // return combinedDateData;
+
+    const UScombinedSameDateData = await CombineSameDateData(amazonUSData);
+    const UKcombinedSameDateData = await CombineSameDateData(amazonUKData);
+    const CAcombinedSameDateData = await CombineSameDateData(amazonCAData);
+    const GEcombinedSameDateData = await CombineSameDateData(amazonGEData);
+    const FRcombinedSameDateData = await CombineSameDateData(amazonFRData);
+    const ITcombinedSameDateData = await CombineSameDateData(amazonITData);
+
+    return {
+      amazonUSData: UScombinedSameDateData,
+      amazonCAData: CAcombinedSameDateData,
+      amazonUKData: UKcombinedSameDateData,
+      amazonGEData: GEcombinedSameDateData,
+      amazonFRData: FRcombinedSameDateData,
+      amazonITData: ITcombinedSameDateData,
+    };
   }
 
   @post('/api/dashboard/historicalPerformance')
@@ -388,15 +411,31 @@ export class DashboardController {
     const amazonFRData = await this.amazonFRRepository.find(customFilter);
     const amazonITData = await this.amazonITRepository.find(customFilter);
 
-    const combinedDateData = CombineSameDateData([
-      amazonUSData,
-      amazonUKData,
-      amazonCAData,
-      amazonGEData,
-      amazonFRData,
-      amazonITData,
-    ]);
+    // const combinedDateData = CombineSameDateData([
+    //   amazonUSData,
+    //   amazonUKData,
+    //   amazonCAData,
+    //   amazonGEData,
+    //   amazonFRData,
+    //   amazonITData,
+    // ]);
 
-    return combinedDateData;
+    // return combinedDateData;
+
+    const UScombinedSameDateData = await CombineSameDateData(amazonUSData);
+    const UKcombinedSameDateData = await CombineSameDateData(amazonUKData);
+    const CAcombinedSameDateData = await CombineSameDateData(amazonCAData);
+    const GEcombinedSameDateData = await CombineSameDateData(amazonGEData);
+    const FRcombinedSameDateData = await CombineSameDateData(amazonFRData);
+    const ITcombinedSameDateData = await CombineSameDateData(amazonITData);
+
+    return {
+      amazonUSData: UScombinedSameDateData,
+      amazonCAData: CAcombinedSameDateData,
+      amazonUKData: UKcombinedSameDateData,
+      amazonGEData: GEcombinedSameDateData,
+      amazonFRData: FRcombinedSameDateData,
+      amazonITData: ITcombinedSameDateData,
+    };
   }
 }

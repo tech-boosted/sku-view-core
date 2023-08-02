@@ -10,7 +10,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {Channels, User} from '../models';
 import {ChannelsRepository, UserRepository} from '../repositories';
-import {getChannelsList} from '../service/getChannelsList';
+import {getChannelsList, validateToken} from '../service';
 
 //@ts-ignore
 const secretKey: jwt.Secret = process.env.SECRETKEY;
@@ -194,6 +194,40 @@ export class UserController {
         'Failed to create user. Transaction Failed',
       );
     }
+  }
+
+  @post('/user/channelsInfo')
+  async channels(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              token: {type: 'string'},
+            },
+            required: ['token'],
+          },
+        },
+      },
+    })
+    body: {
+      token: string;
+    },
+  ) {
+    let selectedUser = await validateToken(body.token, this.userRepository);
+    let customer_id = selectedUser.customer_id;
+
+    //@ts-ignore
+    const channels: Channels = await this.channelsRepository.findOne({
+      where: {
+        customer_id: customer_id,
+      },
+    });
+
+    let userChannels = await getChannelsList(channels);
+
+    return userChannels;
   }
 
   // @get('/user/count')

@@ -109,7 +109,7 @@ export class AmazonOnboardController {
       ']&redirect_uri=' +
       AMAZON_REDIRECT_URL;
 
-    return loginWithAmazonUrl;
+    return {url: loginWithAmazonUrl};
   }
 
   // Callback for Amazon

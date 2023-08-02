@@ -73,21 +73,11 @@ export const checkDateRangeAmazon = async (
 
       if (desiredEndDateObj.getTime() > latestDateObj.getTime()) {
         console.log('latestDateObj: ', latestDateObj);
-        latestDateObj.setDate(latestDateObj.getDate() + 1);
-        console.log('date updated latestDateObj: ', latestDateObj);
-        let newStartDate = new Date(latestDateObj);
-        console.log('date updated newStartDate: ', newStartDate);
-        let month = newStartDate.getMonth() + 1 + '';
-        let date = newStartDate.getDate() + '';
-        console.log('date: ', date);
-        if (newStartDate.getDate() < 10) {
-          date = '0' + newStartDate.getDate();
-        }
-        if (newStartDate.getMonth() + 1 < 10) {
-          month = '0' + (newStartDate.getMonth() + 1);
-        }
-        let updatedLatestDate =
-          newStartDate.getFullYear() + '-' + month + '-' + date;
+        const currentTimestamp = latestDateObj.getTime();
+        const nextTimestamp = currentTimestamp + 24 * 60 * 60 * 1000;
+        const nextDate = new Date(nextTimestamp);
+        const nextDateString = nextDate.toISOString().slice(0, 10);
+        let updatedLatestDate = nextDateString;
         console.log('updatedLatestDate: ', updatedLatestDate);
 
         await amazonDatesMetaDataRepository.updateAll(
