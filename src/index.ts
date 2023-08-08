@@ -1,3 +1,4 @@
+import {readFileSync} from 'fs';
 import {ApplicationConfig, SkuViewCoreApplication} from './application';
 const dotenv = require('dotenv').config();
 
@@ -15,6 +16,21 @@ export async function main(options: ApplicationConfig = {}) {
   return app;
 }
 
+const prodVariables =
+  process.env.ENV === 'dev'
+    ? {}
+    : {
+        openApiSpec: {
+          disabled: true,
+        },
+        apiExplorer: {
+          disabled: true,
+        },
+        protocol: 'https',
+        key: readFileSync('/var/www/acros.key'),
+        cert: readFileSync('/var/www/acros_cert_chain.crt'),
+      };
+
 if (require.main === module) {
   // Run the application
   const config = {
@@ -27,10 +43,7 @@ if (require.main === module) {
       // upon stop, set its value to `0`.
       // See https://www.npmjs.com/package/stoppable
       gracePeriodForClose: 5000, // 5 seconds
-      openApiSpec: {
-        // useful when used with OpenAPI-to-GraphQL to locate your application
-        setServersFromRequest: true,
-      },
+      ...prodVariables,
     },
   };
   main(config).catch(err => {

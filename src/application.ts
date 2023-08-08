@@ -9,6 +9,9 @@ import {
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {MySequence} from './sequence';
+const dotenv = require('dotenv').config();
+
+const STATIC_PATH = process.env.STATIC_FILES_PATH;
 
 export {ApplicationConfig};
 
@@ -20,9 +23,11 @@ export class SkuViewCoreApplication extends BootMixin(
 
     // Set up the custom sequence
     this.sequence(MySequence);
+    console.log('STATIC_PATH: ', STATIC_PATH);
 
-    // Set up default home page
-    this.static('/', path.join(__dirname, '../public'));
+    if(STATIC_PATH)
+      // Set up default home page
+      this.static('/', path.join(__dirname, STATIC_PATH));
 
     if (process.env.ENV === 'dev') {
       // Customize @loopback/rest-explorer configuration here
