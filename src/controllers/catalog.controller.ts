@@ -70,7 +70,7 @@ export class CatalogController {
     return result.map(({customer_id, ...rest}) => rest);
   }
 
-  @put('/catalog')
+  @put('/api/catalog')
   async replaceById(
     @requestBody({
       content: {
