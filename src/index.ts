@@ -27,8 +27,8 @@ const prodVariables =
           disabled: true,
         },
         protocol: 'https',
-        key: readFileSync('/var/www/acros.key'),
-        cert: readFileSync('/var/www/acros_cert_chain.crt'),
+        key: readFileSync(String(process.env.SSL_KEY_PATH)),
+        cert: readFileSync(String(process.env.SSL_CHAIN_PATH)),
       };
 
 if (require.main === module) {
