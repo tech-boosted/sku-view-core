@@ -2,8 +2,7 @@ import {inject} from '@loopback/core';
 import {DefaultCrudRepository, repository} from '@loopback/repository';
 import {SkuviewDsDataSource} from '../datasources';
 import {Dashboard, DashboardRelations} from '../models';
-import {getConnectedChannelsList} from '../service';
-import {TableNamesUsingPlatforms} from '../service/constants';
+import {TableNamesUsingPlatforms, getConnectedChannelsList} from '../service';
 import {ChannelsRepository} from './channels.repository';
 
 export class DashboardRepository extends DefaultCrudRepository<

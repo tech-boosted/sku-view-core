@@ -1,4 +1,4 @@
-import {SkuData} from '../models/SkuData';
+import {SkuData} from '../../models/SkuData';
 
 export interface UnStructuredDataProps {
   sku: string;

@@ -1,4 +1,4 @@
-import {Channels} from '../models';
+import {Channels} from '../../models';
 
 export const getChannelsList = async (channels: Channels) => {
   let userChannels = {};

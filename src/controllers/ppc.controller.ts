@@ -14,6 +14,7 @@ import {
   UserRepository,
 } from '../repositories';
 import {
+  SkuService,
   checkDateRangeAmazon,
   getConnectedChannelsList,
   getDriversData,
@@ -349,5 +350,76 @@ export class PPCController {
       amazonFRData: await getDriversData(amazonFRDataOne, amazonFRDataTwo),
       amazonITData: await getDriversData(amazonITDataOne, amazonITDataTwo),
     };
+  }
+
+  @post('/api/ppc/split')
+  async ppcSplit(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              startDate: {type: 'string'},
+              endDate: {type: 'string'},
+              selectedSku: {type: 'string'},
+              token: {type: 'string'},
+            },
+            required: ['startDate', 'endDate', 'selectedSku', 'token'],
+          },
+        },
+      },
+    })
+    body: {
+      startDate: string;
+      endDate: string;
+      selectedSku: string;
+      token: string;
+    },
+  ): Promise<any> {
+    const token = body.token;
+    const startDate = body.startDate;
+    const endDate = body.endDate;
+    const selectedSku = body.selectedSku;
+
+    let {customer_id, ...selectedUser} = await validateToken(
+      token,
+      this.userRepository,
+    );
+
+    let connectedChannels: string[] = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    if (specificSKUs?.length === 0) {
+      return [];
+    }
+
+    console.log('desiredStartDate: ', startDate);
+    console.log('desiredEndDate: ', endDate);
+
+    const skuService = new SkuService(
+      this.amazonUSRepository,
+      this.amazonCARepository,
+      this.amazonUKRepository,
+      this.amazonGERepository,
+      this.amazonFRRepository,
+      this.amazonITRepository,
+    );
+
+    return skuService.getSkuDataByNameAndRange(selectedSku, startDate, endDate);
   }
 }

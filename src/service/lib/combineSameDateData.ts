@@ -1,7 +1,3 @@
-interface CombineSameDateDataProps {
-  platformWiseData: [][];
-}
-
 interface GenericModel {
   sku: string;
   date: string;

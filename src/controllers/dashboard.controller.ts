@@ -18,11 +18,11 @@ import {
 import {
   CombineSameDateData,
   CombineSameSkuDateData,
+  TableNamesUsingPlatforms,
   checkDateRangeAmazon,
   getConnectedChannelsList,
   validateToken,
 } from '../service';
-import {TableNamesUsingPlatforms} from '../service/constants';
 import {PastThirtyDays, getStartDateAndEndDate} from '../utils';
 
 export class DashboardController {
