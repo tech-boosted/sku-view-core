@@ -16,8 +16,10 @@ import {
 import {
   checkDateRangeAmazon,
   getConnectedChannelsList,
+  getDriversData,
   validateToken,
 } from '../service';
+import {getStartDateAndEndDate} from '../utils';
 
 const TableNamesUsingPlatforms: {[key: string]: string} = {
   amazon_us: 'AmazonUS',
@@ -199,5 +201,153 @@ export class PPCController {
       //@ts-ignore
       customer_id,
     );
+  }
+
+  @post('/api/ppc/drivers')
+  async ppcDrivers(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              monthOne: {type: 'string'},
+              yearOne: {type: 'number'},
+              monthTwo: {type: 'string'},
+              yearTwo: {type: 'number'},
+              token: {type: 'string'},
+            },
+            required: ['monthOne', 'yearOne', 'monthTwo', 'yearTwo', 'token'],
+          },
+        },
+      },
+    })
+    body: {
+      monthOne: string;
+      yearOne: number;
+      monthTwo: string;
+      yearTwo: number;
+      token: string;
+    },
+  ): Promise<any> {
+    const token = body.token;
+    const monthOne = body.monthOne;
+    const yearOne = body.yearOne;
+    const monthTwo = body.monthTwo;
+    const yearTwo = body.yearTwo;
+
+    let {customer_id, ...selectedUser} = await validateToken(
+      token,
+      this.userRepository,
+    );
+    // let customer_id = selectedUser.customer_id;
+    //@ts-ignore
+    let connectedChannels: string[] = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    if (specificSKUs?.length === 0) {
+      return [];
+    }
+
+    const monthOneDates = getStartDateAndEndDate(monthOne, yearOne);
+    const monthTwoDates = getStartDateAndEndDate(monthTwo, yearTwo);
+
+    const desiredStartDateOne = monthOneDates.startDate;
+    const desiredEndDateOne = monthOneDates.endDate;
+
+    const desiredStartDateTwo = monthTwoDates.startDate;
+    const desiredEndDateTwo = monthTwoDates.endDate;
+
+    console.log('desiredStartDateOne: ', desiredStartDateOne);
+    console.log('desiredEndDateOne: ', desiredEndDateOne);
+
+    console.log('desiredStartDateTwo: ', desiredStartDateTwo);
+    console.log('desiredEndDateTwo: ', desiredEndDateTwo);
+
+    // Define the custom filter
+    const customFilterOne = {
+      where: {
+        and: [
+          {date: {gte: desiredStartDateOne}},
+          {date: {lte: desiredEndDateOne}},
+          {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+        date: true,
+      },
+      order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
+    };
+
+    // Define the custom filter
+    const customFilterTwo = {
+      where: {
+        and: [
+          {date: {gte: desiredStartDateTwo}},
+          {date: {lte: desiredEndDateTwo}},
+          {customer_id: customer_id},
+          {sku: {inq: specificSKUs}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+        date: true,
+      },
+      order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
+    };
+
+    // Fetch data from each table
+    const amazonUSDataOne = await this.amazonUSRepository.find(customFilterOne);
+    const amazonUSDataTwo = await this.amazonUSRepository.find(customFilterTwo);
+
+    const amazonCADataOne = await this.amazonCARepository.find(customFilterOne);
+    const amazonCADataTwo = await this.amazonCARepository.find(customFilterTwo);
+
+    const amazonUKDataOne = await this.amazonUKRepository.find(customFilterOne);
+    const amazonUKDataTwo = await this.amazonUKRepository.find(customFilterTwo);
+
+    const amazonGEDataOne = await this.amazonGERepository.find(customFilterOne);
+    const amazonGEDataTwo = await this.amazonGERepository.find(customFilterOne);
+
+    const amazonFRDataOne = await this.amazonFRRepository.find(customFilterOne);
+    const amazonFRDataTwo = await this.amazonFRRepository.find(customFilterTwo);
+
+    const amazonITDataOne = await this.amazonITRepository.find(customFilterTwo);
+    const amazonITDataTwo = await this.amazonITRepository.find(customFilterTwo);
+
+    return {
+      amazonUSData: await getDriversData(amazonUSDataOne, amazonUSDataTwo),
+      amazonCAData: await getDriversData(amazonCADataOne, amazonCADataTwo),
+      amazonUKData: await getDriversData(amazonUKDataOne, amazonUKDataTwo),
+      amazonGEData: await getDriversData(amazonGEDataOne, amazonGEDataTwo),
+      amazonFRData: await getDriversData(amazonFRDataOne, amazonFRDataTwo),
+      amazonITData: await getDriversData(amazonITDataOne, amazonITDataTwo),
+    };
   }
 }
