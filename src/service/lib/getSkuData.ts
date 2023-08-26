@@ -7,6 +7,7 @@ import {
   AmazonUKRepository,
   AmazonUSRepository,
 } from '../../repositories';
+import {CombineSameSkuDateData} from './combineSameSkuDateData';
 
 interface CombinedSkuData {
   impressions: number;
@@ -108,5 +109,52 @@ export class SkuService {
 
     // return combinedData;
     return Object.fromEntries(combinedDataMap);
+  }
+
+  async getSkusDataByNameAndRange(
+    skus: string[],
+    start_date: string,
+    end_date: string,
+  ) {
+    const customFilter = {
+      where: {
+        and: [
+          {sku: {inq: [...skus]}},
+          {date: {gte: start_date}},
+          {date: {lte: end_date}},
+        ],
+      },
+      fields: {
+        sku: true,
+        impressions: true,
+        clicks: true,
+        spend: true,
+        sales: true,
+        orders: true,
+      },
+    };
+
+    const amazonUSData = await this.amazonUSRepo.find(customFilter);
+    const amazonCAData = await this.amazonCARepo.find(customFilter);
+    const amazonUKData = await this.amazonUKRepo.find(customFilter);
+    const amazonGEData = await this.amazonGERepo.find(customFilter);
+    const amazonFRData = await this.amazonFRRepo.find(customFilter);
+    const amazonITData = await this.amazonITRepo.find(customFilter);
+
+    const UScombinedSameDateData = await CombineSameSkuDateData(amazonUSData);
+    const UKcombinedSameDateData = await CombineSameSkuDateData(amazonUKData);
+    const CAcombinedSameDateData = await CombineSameSkuDateData(amazonCAData);
+    const GEcombinedSameDateData = await CombineSameSkuDateData(amazonGEData);
+    const FRcombinedSameDateData = await CombineSameSkuDateData(amazonFRData);
+    const ITcombinedSameDateData = await CombineSameSkuDateData(amazonITData);
+
+    return {
+      amazonUSData: UScombinedSameDateData,
+      amazonCAData: CAcombinedSameDateData,
+      amazonUKData: UKcombinedSameDateData,
+      amazonGEData: GEcombinedSameDateData,
+      amazonFRData: FRcombinedSameDateData,
+      amazonITData: ITcombinedSameDateData,
+    };
   }
 }

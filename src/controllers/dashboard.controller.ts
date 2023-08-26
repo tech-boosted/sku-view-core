@@ -780,37 +780,25 @@ export class DashboardController {
           schema: {
             type: 'object',
             properties: {
-              startMonth: {type: 'string'},
-              startYear: {type: 'number'},
-              endMonth: {type: 'string'},
-              endYear: {type: 'number'},
+              startDate: {type: 'string'},
+              endDate: {type: 'string'},
               token: {type: 'string'},
             },
-            required: [
-              'token',
-              'startMonth',
-              'startYear',
-              'endMonth',
-              'endYear',
-            ],
+            required: ['startDate', 'endDate', 'token'],
           },
         },
       },
     })
     body: {
-      startMonth: string;
-      startYear: number;
-      endMonth: string;
-      endYear: number;
+      startDate: string;
+      endDate: string;
       token: string;
     },
   ): Promise<any> {
     let token = body.token;
 
-    let startMonth = body.startMonth;
-    let startYear = body.startYear;
-    let endMonth = body.endMonth;
-    let endYear = body.endYear;
+    const startDate = body.startDate;
+    const endDate = body.endDate;
 
     let selectedUser = await validateToken(token, this.userRepository);
     let customer_id = selectedUser.customer_id;
@@ -847,24 +835,15 @@ export class DashboardController {
       return [];
     }
 
-    console.log('startMonth: ', startMonth, startYear);
-    console.log('endMonth: ', endMonth, endYear);
-
-    const startResult = getStartDateAndEndDate(startMonth, startYear);
-    const endResult = getStartDateAndEndDate(endMonth, endYear);
-
-    const desiredStartDate = startResult.startDate;
-    const desiredEndDate = endResult.endDate;
-
-    console.log('desiredStartDate: ', desiredStartDate);
-    console.log('desiredEndDate: ', desiredEndDate);
+    console.log('desiredStartDate: ', startDate);
+    console.log('desiredEndDate: ', endDate);
 
     // Define the custom filter
     const customFilter = {
       where: {
         and: [
-          {date: {gte: desiredStartDate}},
-          {date: {lte: desiredEndDate}},
+          {date: {gte: startDate}},
+          {date: {lte: endDate}},
           {customer_id: customer_id},
           {sku: {inq: specificSKUs}},
         ],

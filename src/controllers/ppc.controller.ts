@@ -422,4 +422,79 @@ export class PPCController {
 
     return skuService.getSkuDataByNameAndRange(selectedSku, startDate, endDate);
   }
+
+  @post('/api/ppc/compare')
+  async compare(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              startDate: {type: 'string'},
+              endDate: {type: 'string'},
+              selectedSkus: {type: 'array'},
+              token: {type: 'string'},
+            },
+            required: ['startDate', 'endDate', 'selectedSku', 'token'],
+          },
+        },
+      },
+    })
+    body: {
+      startDate: string;
+      endDate: string;
+      selectedSkus: string[];
+      token: string;
+    },
+  ): Promise<any> {
+    const token = body.token;
+    const startDate = body.startDate;
+    const endDate = body.endDate;
+    const selectedSkus = body.selectedSkus;
+
+    let {customer_id, ...selectedUser} = await validateToken(
+      token,
+      this.userRepository,
+    );
+
+    let connectedChannels: string[] = await getConnectedChannelsList(
+      this.channelsRepository,
+      //@ts-ignore
+      customer_id,
+    );
+    let connectedChannelsTableNames: string[] = [];
+
+    for (let i = 0; i < connectedChannels.length; i++) {
+      const element = connectedChannels[i];
+      connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
+    }
+
+    const specificSKUs = await this.ppcRepository.findAllWithSameName(
+      connectedChannelsTableNames,
+      String(customer_id),
+    );
+
+    if (specificSKUs?.length === 0) {
+      return [];
+    }
+
+    console.log('desiredStartDate: ', startDate);
+    console.log('desiredEndDate: ', endDate);
+
+    const skuService = new SkuService(
+      this.amazonUSRepository,
+      this.amazonCARepository,
+      this.amazonUKRepository,
+      this.amazonGERepository,
+      this.amazonFRRepository,
+      this.amazonITRepository,
+    );
+
+    return skuService.getSkusDataByNameAndRange(
+      selectedSkus,
+      startDate,
+      endDate,
+    );
+  }
 }
