@@ -226,9 +226,6 @@ export class DashboardController {
       connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
 
-    console.log('month: ', month);
-    console.log('year: ', year);
-
     const result = getStartDateAndEndDate(month, year);
 
     const desiredStartDate = result.startDate;
@@ -361,17 +358,11 @@ export class DashboardController {
       connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
 
-    console.log('startMonth: ', startMonth, startYear);
-    console.log('endMonth: ', endMonth, endYear);
-
     const startResult = getStartDateAndEndDate(startMonth, startYear);
     const endResult = getStartDateAndEndDate(endMonth, endYear);
 
     const desiredStartDate = startResult.startDate;
     const desiredEndDate = endResult.endDate;
-
-    console.log('desiredStartDate: ', desiredStartDate);
-    console.log('desiredEndDate: ', desiredEndDate);
 
     const specificSKUs = await this.ppcRepository.findAllWithSameName(
       connectedChannelsTableNames,
@@ -473,9 +464,6 @@ export class DashboardController {
       const element = connectedChannels[i];
       connectedChannelsTableNames.push(TableNamesUsingPlatforms[element]);
     }
-
-    console.log('month: ', month);
-    console.log('year: ', year);
 
     const result = getStartDateAndEndDate(month, year);
 
@@ -600,9 +588,6 @@ export class DashboardController {
       return [];
     }
 
-    console.log('month: ', month);
-    console.log('year: ', year);
-
     const result = getStartDateAndEndDate(month, year);
 
     const desiredStartDate = result.startDate;
@@ -716,9 +701,6 @@ export class DashboardController {
     if (specificSKUs?.length === 0) {
       return [];
     }
-
-    console.log('month: ', month);
-    console.log('year: ', year);
 
     const result = getStartDateAndEndDate(month, year);
 
@@ -834,9 +816,6 @@ export class DashboardController {
     if (specificSKUs?.length === 0) {
       return [];
     }
-
-    console.log('desiredStartDate: ', startDate);
-    console.log('desiredEndDate: ', endDate);
 
     // Define the custom filter
     const customFilter = {

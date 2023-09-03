@@ -301,9 +301,7 @@ export class AmazonController {
       requestBody.token,
       this.userRepository,
     );
-    console.log('setting start date end date');
-    console.log('startDate: ', startDate);
-    console.log('endDate: ', endDate);
+    console.log('setting startDate - endDate: ', startDate, endDate);
 
     return this.amazonDatesMetaDataRepository.create({
       customer_id: selectedUser.customer_id,
@@ -334,8 +332,6 @@ export class AmazonController {
       marketplace: string;
     },
   ): Promise<any> {
-    console.log(requestBody);
-
     const marketplace_connected = requestBody.marketplace + '_connected';
     const marketplace_profile_id = requestBody.marketplace + '_profile_id';
     const marketplace_access_token = requestBody.marketplace + '_access_token';
@@ -386,7 +382,6 @@ export class AmazonController {
                   response = {status: true, value: result};
                 })
                 .catch(err => {
-                  console.log('ef');
                   if (err.response.status == 401) {
                     // access_token expired
                     console.log('profile failure 401');

@@ -273,12 +273,6 @@ export class PPCController {
     const desiredStartDateTwo = monthTwoDates.startDate;
     const desiredEndDateTwo = monthTwoDates.endDate;
 
-    console.log('desiredStartDateOne: ', desiredStartDateOne);
-    console.log('desiredEndDateOne: ', desiredEndDateOne);
-
-    console.log('desiredStartDateTwo: ', desiredStartDateTwo);
-    console.log('desiredEndDateTwo: ', desiredEndDateTwo);
-
     // Define the custom filter
     const customFilterOne = {
       where: {
@@ -408,9 +402,6 @@ export class PPCController {
       return [];
     }
 
-    console.log('desiredStartDate: ', startDate);
-    console.log('desiredEndDate: ', endDate);
-
     const skuService = new SkuService(
       this.amazonUSRepository,
       this.amazonCARepository,
@@ -478,9 +469,6 @@ export class PPCController {
     if (specificSKUs?.length === 0) {
       return [];
     }
-
-    console.log('desiredStartDate: ', startDate);
-    console.log('desiredEndDate: ', endDate);
 
     const skuService = new SkuService(
       this.amazonUSRepository,
