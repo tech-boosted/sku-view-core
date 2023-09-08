@@ -17,12 +17,13 @@ export const PastThirtyDays = () => {
   const yesterdayDay = String(yesterday.getDate()).padStart(2, '0');
   const yesterdayFormatted = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
 
-  return {
-    yesterdayFormatted: yesterdayFormatted,
-    thirtyDaysAgoFormatted: thirtyDaysAgoFormatted,
-  };
   // return {
-  //   yesterdayFormatted: '2023-06-15',
-  //   thirtyDaysAgoFormatted: '2023-06-01',
+  //   yesterdayFormatted: yesterdayFormatted,
+  //   thirtyDaysAgoFormatted: thirtyDaysAgoFormatted,
   // };
+
+  return {
+    yesterdayFormatted: '2023-07-31',
+    thirtyDaysAgoFormatted: '2023-07-01',
+  };
 };

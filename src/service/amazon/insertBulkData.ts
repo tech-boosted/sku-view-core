@@ -1,7 +1,7 @@
 export const InsertBulkData = async (selectedRespository: any, data: any) => {
   try {
     console.log('inserting data into table');
-    selectedRespository.createAll(data);
+    await selectedRespository.createAll(data);
     console.log('done inserting data');
     return;
   } catch (err) {

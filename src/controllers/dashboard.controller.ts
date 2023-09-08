@@ -23,6 +23,7 @@ import {
   getConnectedChannelsList,
   validateToken,
 } from '../service';
+import {historicalTrend} from '../service/dashboard';
 import {PastThirtyDays, getStartDateAndEndDate} from '../utils';
 
 export class DashboardController {
@@ -373,50 +374,18 @@ export class DashboardController {
       return [];
     }
 
-    const customFilter = {
-      where: {
-        and: [
-          {date: {gte: desiredStartDate}},
-          {date: {lte: desiredEndDate}},
-          {customer_id: customer_id},
-          {sku: {inq: specificSKUs}},
-        ],
-      },
-      fields: {
-        sku: true,
-        impressions: true,
-        clicks: true,
-        spend: true,
-        sales: true,
-        orders: true,
-        date: true,
-      },
-      order: ['date ASC'],
-    };
-
-    // Fetch data from each table
-    const amazonUSData = await this.amazonUSRepository.find(customFilter);
-    const amazonUKData = await this.amazonUKRepository.find(customFilter);
-    const amazonCAData = await this.amazonCARepository.find(customFilter);
-    const amazonGEData = await this.amazonGERepository.find(customFilter);
-    const amazonFRData = await this.amazonFRRepository.find(customFilter);
-    const amazonITData = await this.amazonITRepository.find(customFilter);
-
-    const UScombinedSameDateData = await CombineSameDateData(amazonUSData);
-    const UKcombinedSameDateData = await CombineSameDateData(amazonUKData);
-    const CAcombinedSameDateData = await CombineSameDateData(amazonCAData);
-    const GEcombinedSameDateData = await CombineSameDateData(amazonGEData);
-    const FRcombinedSameDateData = await CombineSameDateData(amazonFRData);
-    const ITcombinedSameDateData = await CombineSameDateData(amazonITData);
-
-    return {
-      amazonUSData: UScombinedSameDateData,
-      amazonCAData: CAcombinedSameDateData,
-      amazonUKData: UKcombinedSameDateData,
-      amazonGEData: GEcombinedSameDateData,
-      amazonFRData: FRcombinedSameDateData,
-      amazonITData: ITcombinedSameDateData,
-    };
+    return historicalTrend({
+      amazonUSRepository: this.amazonUSRepository,
+      amazonUKRepository: this.amazonUKRepository,
+      amazonCARepository: this.amazonCARepository,
+      amazonGERepository: this.amazonGERepository,
+      amazonFRRepository: this.amazonFRRepository,
+      amazonITRepository: this.amazonITRepository,
+      startDateRange: startResult,
+      endDateRange: endResult,
+      customer_id: customer_id,
+      specificSKUs: specificSKUs,
+    });
   }
 
   @post('/api/dashboard/performanceSummary')
