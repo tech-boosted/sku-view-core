@@ -27,6 +27,17 @@ interface Result {
   [key: string]: any;
 }
 
+const PlatformNames: {
+  [key: string]: string;
+} = {
+  'Amazon US': 'amazon_us',
+  'Amazon CA': 'amazon_ca',
+  'Amazon UK': 'amazon_uk',
+  'Amazon GE': 'amazon_ge',
+  'Amazon FR': 'amazon_fr',
+  'Amazon IT': 'amazon_it',
+};
+
 const TableNamesUsingPlatforms: {[key: string]: string} = {
   amazon_us: 'AmazonUS',
   amazon_ca: 'AmazonCA',
@@ -435,9 +446,16 @@ export class PPCController {
               startDate: {type: 'string'},
               endDate: {type: 'string'},
               selectedSkus: {type: 'array'},
+              selectedPlatforms: {type: 'array'},
               token: {type: 'string'},
             },
-            required: ['startDate', 'endDate', 'selectedSku', 'token'],
+            required: [
+              'startDate',
+              'endDate',
+              'selectedSku',
+              'selectedPlatforms',
+              'token',
+            ],
           },
         },
       },
@@ -446,6 +464,7 @@ export class PPCController {
       startDate: string;
       endDate: string;
       selectedSkus: string[];
+      selectedPlatforms: string[];
       token: string;
     },
   ): Promise<any> {
@@ -453,6 +472,11 @@ export class PPCController {
     const startDate = body.startDate;
     const endDate = body.endDate;
     const selectedSkus = body.selectedSkus;
+    const selectedPlatforms = body.selectedPlatforms;
+
+    if (!selectedSkus.length || !selectedPlatforms.length) {
+      return [];
+    }
 
     let {customer_id, ...selectedUser} = await validateToken(
       token,
@@ -464,6 +488,19 @@ export class PPCController {
       //@ts-ignore
       customer_id,
     );
+
+    if (connectedChannels?.length == 0) {
+      return [];
+    }
+
+    let platforms = selectedPlatforms.map(platform => {
+      return PlatformNames[platform];
+    });
+
+    if (!connectedChannels.some(element => platforms.includes(element))) {
+      return [];
+    }
+
     let connectedChannelsTableNames: string[] = [];
 
     for (let i = 0; i < connectedChannels.length; i++) {
@@ -490,6 +527,7 @@ export class PPCController {
     );
 
     return skuService.getSkusDataByNameAndRange(
+      platforms,
       selectedSkus,
       startDate,
       endDate,

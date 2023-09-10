@@ -112,6 +112,7 @@ export class SkuService {
   }
 
   async getSkusDataByNameAndRange(
+    platforms: string[],
     skus: string[],
     start_date: string,
     end_date: string,
@@ -126,20 +127,47 @@ export class SkuService {
       },
       fields: {
         sku: true,
+        date: true,
         impressions: true,
         clicks: true,
         spend: true,
         sales: true,
         orders: true,
       },
+      order: ['date ASC'],
     };
 
-    const amazonUSData = await this.amazonUSRepo.find(customFilter);
-    const amazonCAData = await this.amazonCARepo.find(customFilter);
-    const amazonUKData = await this.amazonUKRepo.find(customFilter);
-    const amazonGEData = await this.amazonGERepo.find(customFilter);
-    const amazonFRData = await this.amazonFRRepo.find(customFilter);
-    const amazonITData = await this.amazonITRepo.find(customFilter);
+    let amazonUSData: any[] = [];
+    let amazonCAData: any[] = [];
+    let amazonUKData: any[] = [];
+    let amazonGEData: any[] = [];
+    let amazonFRData: any[] = [];
+    let amazonITData: any[] = [];
+
+    for (const platform of platforms) {
+      switch (platform) {
+        case 'amazon_us':
+          amazonUSData = await this.amazonUSRepo.find(customFilter);
+          break;
+        case 'amazon_ca':
+          amazonCAData = await this.amazonCARepo.find(customFilter);
+          break;
+        case 'amazon_uk':
+          amazonUKData = await this.amazonUKRepo.find(customFilter);
+          break;
+        case 'amazon_ge':
+          amazonGEData = await this.amazonGERepo.find(customFilter);
+          break;
+        case 'amazon_fr':
+          amazonFRData = await this.amazonFRRepo.find(customFilter);
+          break;
+        case 'amazon_it':
+          amazonITData = await this.amazonITRepo.find(customFilter);
+          break;
+        default:
+          break;
+      }
+    }
 
     const UScombinedSameDateData = await CombineSameSkuDateData(amazonUSData);
     const UKcombinedSameDateData = await CombineSameSkuDateData(amazonUKData);
