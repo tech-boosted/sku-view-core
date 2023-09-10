@@ -1,15 +1,12 @@
 import {CombineSameSkuData} from './combineSameSkuData';
 
-export const getDriversData = async (
-  monthDataOne: any[],
-  monthDataTwo: any[],
-) => {
+export const getDriversData = (monthDataOne: any[], monthDataTwo: any[]) => {
   return [
     {
-      startMonth: await CombineSameSkuData(monthDataOne),
+      startMonth: CombineSameSkuData(monthDataOne),
     },
     {
-      endMonth: await CombineSameSkuData(monthDataTwo),
+      endMonth: CombineSameSkuData(monthDataTwo),
     },
   ];
 };

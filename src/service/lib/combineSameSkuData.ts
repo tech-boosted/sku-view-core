@@ -9,7 +9,7 @@ interface GenericModel {
 }
 
 // Gives data for each sku. Skus is the basic entity here. All skus are combined.
-export const CombineSameSkuData = async (data: any[]) => {
+export const CombineSameSkuData = (data: any[]) => {
   const combinedData = new Map();
 
   // Group the data by date

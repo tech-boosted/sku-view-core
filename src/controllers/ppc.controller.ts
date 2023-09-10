@@ -14,6 +14,7 @@ import {
   UserRepository,
 } from '../repositories';
 import {
+  CombineSameSkuData,
   SkuService,
   checkDateRangeAmazon,
   getConnectedChannelsList,
@@ -21,6 +22,10 @@ import {
   validateToken,
 } from '../service';
 import {getStartDateAndEndDate} from '../utils';
+
+interface Result {
+  [key: string]: any;
+}
 
 const TableNamesUsingPlatforms: {[key: string]: string} = {
   amazon_us: 'AmazonUS',
@@ -290,7 +295,6 @@ export class PPCController {
         spend: true,
         sales: true,
         orders: true,
-        date: true,
       },
       order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
     };
@@ -312,7 +316,6 @@ export class PPCController {
         spend: true,
         sales: true,
         orders: true,
-        date: true,
       },
       order: ['date ASC'], // Sorting by date in ascending order. Use 'DESC' for descending order.
     };
@@ -336,13 +339,20 @@ export class PPCController {
     const amazonITDataOne = await this.amazonITRepository.find(customFilterTwo);
     const amazonITDataTwo = await this.amazonITRepository.find(customFilterTwo);
 
+    function processCountryData(countryDataOne: any, countryDataTwo: any) {
+      return getDriversData(
+        CombineSameSkuData(countryDataOne),
+        CombineSameSkuData(countryDataTwo),
+      );
+    }
+
     return {
-      amazonUSData: await getDriversData(amazonUSDataOne, amazonUSDataTwo),
-      amazonCAData: await getDriversData(amazonCADataOne, amazonCADataTwo),
-      amazonUKData: await getDriversData(amazonUKDataOne, amazonUKDataTwo),
-      amazonGEData: await getDriversData(amazonGEDataOne, amazonGEDataTwo),
-      amazonFRData: await getDriversData(amazonFRDataOne, amazonFRDataTwo),
-      amazonITData: await getDriversData(amazonITDataOne, amazonITDataTwo),
+      amazonUSData: processCountryData(amazonUSDataOne, amazonUSDataTwo),
+      amazonCAData: processCountryData(amazonCADataOne, amazonCADataTwo),
+      amazonUKData: processCountryData(amazonUKDataOne, amazonUKDataTwo),
+      amazonGEData: processCountryData(amazonGEDataOne, amazonGEDataTwo),
+      amazonFRData: processCountryData(amazonFRDataOne, amazonFRDataTwo),
+      amazonITData: processCountryData(amazonITDataOne, amazonITDataTwo),
     };
   }
 
